@@ -163,3 +163,290 @@ class LdCalculator:
             A[j, j + 1 :] = a
             A[j + 1 :, j] = a
         return A
+
+
+class BlockBootstrapDesign:
+    """
+    TODO: docstring
+
+    import tskit
+    import msprime
+    import numpy as np
+    
+    model = msprime.Demography.island_model([1e4]*2, migration_rate=1e-4)
+    ts = msprime.sim_ancestry(
+        samples={"pop_0":25,"pop_1":25}, 
+        recombination_rate=1e-8, 
+        demography=model, 
+        sequence_length=3e6,
+    )
+    sample_sets = [np.arange(50), np.arange(50, 100)]
+    
+    # --- example: Fst ---
+    windows = np.linspace(0, ts.sequence_length, 4)
+    bootstrap_design = tskit.BlockBootstrapDesign(
+        ts, blocks_per_window=20, windows=windows 
+    )
+    divergence = ts.divergence(
+        sample_sets=sample_sets, 
+        windows=bootstrap_design.breakpoints,
+        mode='branch',
+    )
+    diversity = ts.diversity(
+        sample_sets=sample_sets,
+        windows=bootstrap_design.breakpoints,
+        mode='branch',
+    )
+    bootstrapper = bootstrap_design.block_bootstrap(
+        np.column_stack([divergence, diversity]), 
+        reduction = lambda x: np.array([1 - 2*(x[1] + x[2])/(2*x[0] + x[1] + x[2])]),
+    )
+    
+    # check correctness
+    bootstrapper.observed_value
+    ts.Fst(sample_sets=sample_sets, windows=windows, mode='branch')
+    
+    # member functions give raw bootstrap replicates or summaries
+    bootstrap_replicates = bootstrapper.resample(num_replicates=100, random_seed=1)
+    
+    # streaming calculations (w/o ever storing more than one replicate)
+    mean = bootstrapper.mean(num_replicates=100, random_seed=1)
+    stddev = bootstrapper.stddev(num_replicates=100, random_seed=1)
+    
+    # --- example: covariance between diversity and divergence ---
+    bootstrapper = bootstrap_design.block_bootstrap(
+        np.column_stack([divergence, diversity]), 
+    )
+    # without `reduction` the per-window output is [diversity, divergence]
+    point_estimate = bootstrapper.observed_value
+    covar = bootstrapper.covariance(num_replicates=100, random_seed=1)
+    
+    bootstrap_replicates = bootstrapper.resample(num_replicates=100, random_seed=1)
+    np.cov(bootstrap_replicates[:,0,:].T)
+    covar[0,:,:]
+    """
+
+    def __init__(self, ts, blocks_per_window, windows=None):
+
+        if windows is None:
+            windows = np.array([0, ts.sequence_length])
+        else:
+            assert isinstance(windows, np.ndarray)
+            assert len(windows.shape) == 1
+            assert len(windows > 1)
+            assert np.min(windows) >= 0
+            assert np.max(windows) <= ts.sequence_length
+        self._window_breakpoints = windows
+        self.num_windows = len(self._window_breakpoints) - 1
+
+        assert isinstance(blocks_per_window, int)
+        assert blocks_per_window > 0
+        self._block_breakpoints = []
+        for i in range(self.num_windows):
+            breakpoints = np.linspace(
+                self._window_breakpoints[i], 
+                self._window_breakpoints[i+1], 
+                blocks_per_window + 1,
+            )
+            self._block_breakpoints.extend(breakpoints)
+        self._block_breakpoints = np.unique(self._block_breakpoints)
+        self.num_blocks = len(self._block_breakpoints) - 1
+        self.blocks_per_window = blocks_per_window
+        assert self.num_blocks == self.blocks_per_window * self.num_windows
+
+    @property
+    def breakpoints(self):
+        """
+        Return breakpoints of blocks in physical coordinates.
+        """
+        return self._block_breakpoints
+
+    def block_bootstrap(self, blocked_statistics, reduction=None, random_seed=None):
+        """
+        Return ``BlockBootstrap`` instance using the design.
+        """
+        return BlockBootstrap(self, blocked_statistics, reduction, random_seed)
+
+
+class BlockBootstrap:
+    """
+    TODO: docstring
+    """
+
+    def __init__(self, design, blocked_statistics, reduction=None, random_seed=None):
+        assert isinstance(design, BlockBootstrapDesign)
+        self.design = design
+
+        assert isinstance(blocked_statistics, np.ndarray)
+        assert len(blocked_statistics.shape) == 2
+        assert blocked_statistics.shape[0] == design.num_blocks
+        self.blocked_statistics = blocked_statistics
+        self.num_statistics = blocked_statistics.shape[1]
+
+        if reduction is None:
+            reduction = lambda x: x
+        else:
+            assert callable(reduction)
+        test_eval = reduction(blocked_statistics[0])
+        assert isinstance(test_eval, np.ndarray)
+        assert test_eval.ndim == 1
+        assert len(test_eval) > 0
+        self.reduction = reduction
+        self.num_outputs = len(test_eval)
+
+        self.rng = np.random.default_rng(random_seed)
+
+    def _recalculate_statistic(self, weights):
+        """
+        Return reduction of statistics that have been weighted by block and
+        summed within windows.
+
+        Let `X` be a vector of length `blocks_per_window * num_windows`.
+        Blocks are arranged contiguously in terms of physical coordinates, so
+        if the statistic of interest is a sum over blocks within each window:
+
+        `np.sum(X.reshape((num_windows, blocks_per_window)), axis=1)` 
+
+        A bootstrap replicate is equivalent to reweighting blocks within each
+        window with integers that are draws from a uniform multinomial. To do
+        this efficiently for multiple bootstrap replicates/statistics/time
+        windows, rewrite as a tensor product.
+        """
+        assert len(weights.shape) == 3
+        assert weights.shape[1] == self.design.num_windows
+        assert weights.shape[2] == self.design.blocks_per_window
+        assert np.all(np.sum(weights, axis=2) == self.design.blocks_per_window)
+
+        num_replicates = weights.shape[0]
+
+        stats = self.blocked_statistics.reshape(
+            (self.design.num_windows, self.design.blocks_per_window, self.num_statistics)
+        )
+
+        # want views, not copies; check that memory pointer is the same
+        assert stats.__array_interface__['data'] == self.blocked_statistics.__array_interface__['data']
+
+        # straightforward to extend to other dimensions, e.g. time windows
+        windowed_stats = np.einsum(
+            'ijk,...ij->...ik', stats, weights, optimize='greedy'
+        )
+        assert windowed_stats.shape == (num_replicates, self.design.num_windows, self.num_statistics)
+        return np.apply_along_axis(self.reduction, 2, windowed_stats).squeeze()
+
+    def resample(self, num_replicates=1, random_seed=None):
+        """
+        Return `num_replicates` bootstrap replicates.
+        """
+
+        assert num_replicates > 0
+        if random_seed is not None:
+            self.rng = np.random.default_rng(random_seed)
+        bootstrap_weights = self.rng.multinomial(
+            self.design.blocks_per_window, 
+            [1/self.design.blocks_per_window]*self.design.blocks_per_window,
+            (num_replicates, self.design.num_windows),
+        )
+        return self._recalculate_statistic(bootstrap_weights)
+
+    @property
+    def observed_value(self):
+        """
+        The statistic calcuated from the actual data.
+        """
+
+        weights = np.ones(
+            (1, self.design.num_windows, self.design.blocks_per_window)
+        )
+        return self._recalculate_statistic(weights)
+
+    def mean(self, num_replicates, random_seed=None):
+        """
+        The mean of the bootstrap distribution of the statistic(s) within windows.
+        Uses a numerically stable streaming calculation so as to work with many
+        bootstrap replicates and large arrays.
+        """
+
+        assert num_replicates > 0
+        if random_seed is not None:
+            self.rng = np.random.default_rng(random_seed)
+        mean = np.zeros(self.observed_value.shape)
+        for n in range(num_replicates):
+            replicate = self.resample()
+            mean += (replicate - mean)/(n + 1)
+        return mean
+
+    def variance(self, num_replicates, random_seed=None):
+        """
+        The variance of the bootstrap distribution of the statistic(s) within
+        windows. Uses a numerically stable streaming calculation so as to work
+        with many bootstrap replicates and large arrays.
+        """
+
+        assert num_replicates > 1
+        if random_seed is not None:
+            self.rng = np.random.default_rng(random_seed)
+        mean = np.zeros(self.observed_value.shape)
+        var = np.zeros(self.observed_value.shape)
+        for n in range(num_replicates):
+            replicate = self.resample()
+            delta = replicate - mean
+            mean += delta/(n + 1)
+            var += delta*(replicate - mean)
+        return var / (num_replicates - 1)
+
+    def stddev(self, num_replicates, random_seed=None):
+        """
+        The standard deviation of the bootstrap distribution of the statistic(s)
+        within windows. Uses a numerically stable streaming calculation so as
+        to work with many bootstrap replicates and large arrays.
+        """
+
+        return np.sqrt(self.variance(num_replicates, random_seed))
+
+    def covariance(self, num_replicates, random_seed=None):
+        """
+        The covariance of the bootstrap distribution of a vector of statistics
+        within windows. Uses a numerically stable streaming calculation so as
+        to work with many bootstrap replicates and large arrays.
+
+        .. note: The maximum possible rank of the covariance matrix is
+            ``min(blocks_per_window, num_replicates, num_statistics)``. Thus,
+            for high-dimensional statistics, it may not be possible to get a
+            positive-definite covariance matrix.
+        """
+
+        # TODO: this could be prone to overflow with large trees and additive
+        # statistics. It'd be more stable to do rank-1 updates to a LDL'
+        # factorization.
+
+        assert num_replicates > 1
+        if random_seed is not None:
+            self.rng = np.random.default_rng(random_seed)
+        mean = np.zeros(self.observed_value.shape)
+        covar = np.zeros(self.observed_value.shape + (self.num_outputs,))
+        for n in range(num_replicates):
+            replicate = self.resample()
+            delta = replicate - mean
+            mean += delta/(n + 1)
+            delta_w = (replicate - mean)/(n + 1)
+            covar = covar * n/(n + 1) + np.einsum('...i,...j->...ij', delta, delta_w)
+        return covar * num_replicates/(num_replicates - 1)
+
+    #def quantiles(self, quantiles, num_replicates):
+    #    """
+    #    TODO: will have to be approximate for streaming calculation
+    #    """
+
+
+
+
+
+
+
+
+
+
+
+
+
+
