@@ -167,93 +167,93 @@ class LdCalculator:
 
 class BlockBootstrapDesign:
     """
-    TODO: docstring
+        TODO: docstring
 
-import tskit
-import msprime
-import numpy as np
+    import tskit
+    import msprime
+    import numpy as np
 
-model = msprime.Demography.island_model([1e4]*2, migration_rate=1e-4)
-haps_per_pop = 200
-ts = msprime.sim_ancestry(
-    samples={"pop_0":haps_per_pop/2,"pop_1":haps_per_pop/2}, 
-    recombination_rate=1e-8, 
-    demography=model, 
-    sequence_length=10e6,
-)
-sample_sets = [np.arange(haps_per_pop), np.arange(haps_per_pop, 2*haps_per_pop)]
+    model = msprime.Demography.island_model([1e4]*2, migration_rate=1e-4)
+    haps_per_pop = 200
+    ts = msprime.sim_ancestry(
+        samples={"pop_0":haps_per_pop/2,"pop_1":haps_per_pop/2},
+        recombination_rate=1e-8,
+        demography=model,
+        sequence_length=10e6,
+    )
+    sample_sets = [np.arange(haps_per_pop), np.arange(haps_per_pop, 2*haps_per_pop)]
 
-# --- example: Fst ---
-windows = np.linspace(0, ts.sequence_length, 5)
-bootstrap_design = tskit.BlockBootstrapDesign(
-    ts, blocks_per_window=50, windows=windows, block_by='trees'
-)
-bootstrap_design.num_trees_per_block
-divergence = ts.divergence(
-    sample_sets=sample_sets, 
-    windows=bootstrap_design.breakpoints,
-    mode='branch',
-    span_normalise=False,
-)
-diversity = ts.diversity(
-    sample_sets=sample_sets,
-    windows=bootstrap_design.breakpoints,
-    mode='branch',
-    span_normalise=False,
-)
-bootstrapper = bootstrap_design.block_bootstrap(
-    np.column_stack([divergence, diversity]), 
-    reduction=lambda x: np.array([1 - 2*(x[1] + x[2])/(2*x[0] + x[1] + x[2])]),
-    span_normalise=True, #inputs should *not* be span-normalised
-)
-    
-# check correctness
-bootstrapper.observed_value
-ts.Fst(sample_sets=sample_sets, windows=windows, mode='branch')
-    
-# member functions give raw bootstrap replicates or summaries
-bootstrapper.resample(num_replicates=100, random_seed=1)
-    
-# streaming calculations (w/o ever storing more than one replicate)
-# vs generating all samples at once (faster)
-bootstrapper.mean(num_replicates=100, random_seed=1)
-bootstrapper.resample(100, random_seed=1).mean(axis=0)
+    # --- example: Fst ---
+    windows = np.linspace(0, ts.sequence_length, 5)
+    bootstrap_design = tskit.BlockBootstrapDesign(
+        ts, blocks_per_window=50, windows=windows, block_by='trees'
+    )
+    bootstrap_design.num_trees_per_block
+    divergence = ts.divergence(
+        sample_sets=sample_sets,
+        windows=bootstrap_design.breakpoints,
+        mode='branch',
+        span_normalise=False,
+    )
+    diversity = ts.diversity(
+        sample_sets=sample_sets,
+        windows=bootstrap_design.breakpoints,
+        mode='branch',
+        span_normalise=False,
+    )
+    bootstrapper = bootstrap_design.block_bootstrap(
+        np.column_stack([divergence, diversity]),
+        reduction=lambda x: np.array([1 - 2*(x[1] + x[2])/(2*x[0] + x[1] + x[2])]),
+        span_normalise=True, #inputs should *not* be span-normalised
+    )
 
-bootstrapper.stddev(num_replicates=100, random_seed=1)
-bootstrapper.resample(100, random_seed=1).std(axis=0)
+    # check correctness
+    bootstrapper.observed_value
+    ts.Fst(sample_sets=sample_sets, windows=windows, mode='branch')
 
-# faster, but more memory intensive
-    
-# --- example: covariance between diversity and divergence ---
-bootstrapper = bootstrap_design.block_bootstrap(
-    np.column_stack([divergence, diversity]), 
-    span_normalise=True,
-)
-# without `reduction` the per-window output is [diversity, divergence]
-bootstrapper.observed_value
-covar = bootstrapper.covariance(num_replicates=100, random_seed=1)
-    
-bootstrap_replicates = bootstrapper.resample(num_replicates=100, random_seed=1)
-np.cov(bootstrap_replicates[:,0,:].T)
-covar[0,:,:]
+    # member functions give raw bootstrap replicates or summaries
+    bootstrapper.resample(num_replicates=100, random_seed=1)
 
-# --- example: consistency for linear statistic --- 
-bootstrap_design = tskit.BlockBootstrapDesign(
-    ts, blocks_per_window=200, block_by='sites'
-)
-bootstrap_design.num_trees_per_block
-bootstrapper = bootstrap_design.block_bootstrap(
-    ts.divergence(sample_sets=sample_sets, windows=bootstrap_design.breakpoints, mode='branch', span_normalise=False),
-    span_normalise=True,
-)
-bootstrapper.observed_value
-bootstrapper.
+    # streaming calculations (w/o ever storing more than one replicate)
+    # vs generating all samples at once (faster)
+    bootstrapper.mean(num_replicates=100, random_seed=1)
+    bootstrapper.resample(100, random_seed=1).mean(axis=0)
+
+    bootstrapper.stddev(num_replicates=100, random_seed=1)
+    bootstrapper.resample(100, random_seed=1).std(axis=0)
+
+    # faster, but more memory intensive
+
+    # --- example: covariance between diversity and divergence ---
+    bootstrapper = bootstrap_design.block_bootstrap(
+        np.column_stack([divergence, diversity]),
+        span_normalise=True,
+    )
+    # without `reduction` the per-window output is [diversity, divergence]
+    bootstrapper.observed_value
+    covar = bootstrapper.covariance(num_replicates=100, random_seed=1)
+
+    bootstrap_replicates = bootstrapper.resample(num_replicates=100, random_seed=1)
+    np.cov(bootstrap_replicates[:,0,:].T)
+    covar[0,:,:]
+
+    # --- example: consistency for linear statistic ---
+    bootstrap_design = tskit.BlockBootstrapDesign(
+        ts, blocks_per_window=200, block_by='sites'
+    )
+    bootstrap_design.num_trees_per_block
+    bootstrapper = bootstrap_design.block_bootstrap(
+        ts.divergence(sample_sets=sample_sets, windows=bootstrap_design.breakpoints, mode='branch', span_normalise=False),
+        span_normalise=True,
+    )
+    bootstrapper.observed_value
+    bootstrapper.
 
 
 
     """
 
-    def __init__(self, ts, blocks_per_window, windows=None, block_by='trees'):
+    def __init__(self, ts, blocks_per_window, windows=None, block_by="trees"):
 
         if windows is None:
             windows = np.array([0, ts.sequence_length])
@@ -271,12 +271,16 @@ bootstrapper.
         self._block_breakpoints = []
         tree_breakpoints = np.array([x for x in ts.breakpoints()])
         for i in range(self.num_windows):
-            window = [self._window_breakpoints[i], self._window_breakpoints[i+1]]
-            if block_by == 'trees':
-                in_window = np.logical_and(tree_breakpoints >= window[0], tree_breakpoints < window[1])
+            window = [self._window_breakpoints[i], self._window_breakpoints[i + 1]]
+            if block_by == "trees":
+                in_window = np.logical_and(
+                    tree_breakpoints >= window[0], tree_breakpoints < window[1]
+                )
                 breakpoints = np.unique(np.append(tree_breakpoints[in_window], window))
-                breakpoints = np.quantile(breakpoints, np.linspace(0, 1, blocks_per_window + 1))
-            elif block_by == 'sites':
+                breakpoints = np.quantile(
+                    breakpoints, np.linspace(0, 1, blocks_per_window + 1)
+                )
+            elif block_by == "sites":
                 breakpoints = np.linspace(window[0], window[1], blocks_per_window + 1)
             else:
                 raise ValueError('`block_by` must be one of ["trees", "sites"]')
@@ -285,13 +289,15 @@ bootstrapper.
         self._block_span = np.diff(self._block_breakpoints)
         self.num_blocks = len(self._block_breakpoints) - 1
         self.blocks_per_window = blocks_per_window
-        #print(self.blocks_per_window)
-        #print(self.num_windows)
-        #print(self.num_blocks)
+        # print(self.blocks_per_window)
+        # print(self.num_windows)
+        # print(self.num_blocks)
         assert self.num_blocks == self.blocks_per_window * self.num_windows
         assert self.num_blocks == len(self._block_span)
-        #TODO: this isn't correct if any tree breakpoints coincide with window breakpoints
-        self.num_trees_per_block, _ = np.histogram(tree_breakpoints, self._block_breakpoints)
+        # TODO: this isn't correct if any tree breakpoints coincide with window breakpoints
+        self.num_trees_per_block, _ = np.histogram(
+            tree_breakpoints, self._block_breakpoints
+        )
         self.num_trees_per_block += 1
 
     @property
@@ -308,12 +314,15 @@ bootstrapper.
         """
         return self._block_span
 
-
-    def block_bootstrap(self, blocked_statistics, span_normalise=True, reduction=None, random_seed=None):
+    def block_bootstrap(
+        self, blocked_statistics, span_normalise=True, reduction=None, random_seed=None
+    ):
         """
         Return ``BlockBootstrap`` instance using the design.
         """
-        return BlockBootstrap(self, blocked_statistics, span_normalise, reduction, random_seed)
+        return BlockBootstrap(
+            self, blocked_statistics, span_normalise, reduction, random_seed
+        )
 
 
 class BlockBootstrap:
@@ -321,7 +330,14 @@ class BlockBootstrap:
     TODO: docstring
     """
 
-    def __init__(self, design, blocked_statistics, span_normalise=True, reduction=None, random_seed=None):
+    def __init__(
+        self,
+        design,
+        blocked_statistics,
+        span_normalise=True,
+        reduction=None,
+        random_seed=None,
+    ):
         assert isinstance(design, BlockBootstrapDesign)
         self.design = design
         self.span_normalise = span_normalise
@@ -354,7 +370,7 @@ class BlockBootstrap:
         Blocks are arranged contiguously in terms of physical coordinates, so
         if the statistic of interest is a sum over blocks within each window:
 
-        `np.sum(X.reshape((num_windows, blocks_per_window)), axis=1)` 
+        `np.sum(X.reshape((num_windows, blocks_per_window)), axis=1)`
 
         A bootstrap replicate is equivalent to reweighting blocks within each
         window with integers that are draws from a uniform multinomial. To do
@@ -369,27 +385,47 @@ class BlockBootstrap:
         num_replicates = weights.shape[0]
 
         stats = self.blocked_statistics.reshape(
-            (self.design.num_windows, self.design.blocks_per_window, self.num_statistics)
+            (
+                self.design.num_windows,
+                self.design.blocks_per_window,
+                self.num_statistics,
+            )
         )
         block_span = self.design.span.reshape(
             (self.design.num_windows, self.design.blocks_per_window)
         )
 
         # want views, not copies; check that memory pointer is the same
-        assert stats.__array_interface__['data'] == self.blocked_statistics.__array_interface__['data']
-        assert block_span.__array_interface__['data'] == self.design.span.__array_interface__['data']
+        assert (
+            stats.__array_interface__["data"]
+            == self.blocked_statistics.__array_interface__["data"]
+        )
+        assert (
+            block_span.__array_interface__["data"]
+            == self.design.span.__array_interface__["data"]
+        )
 
-        window_span = np.einsum('ijk,jk->ij', weights, block_span)
+        window_span = np.einsum("ijk,jk->ij", weights, block_span)
         if not self.span_normalise:
             window_span.fill(1)
 
         # straightforward to extend to other dimensions, e.g. time windows
         windowed_stats = np.einsum(
-            'ijk,...ij,...i->...ik', stats, weights, 1./window_span, optimize='greedy'
+            "ijk,...ij,...i->...ik",
+            stats,
+            weights,
+            1.0 / window_span,
+            optimize="greedy"
             #'ijk,lij,li->lik', stats, weights, 1./window_span, optimize='greedy' #would be better
         )
-        assert windowed_stats.shape == (num_replicates, self.design.num_windows, self.num_statistics)
-        return np.apply_along_axis(self.reduction, 2, windowed_stats).squeeze() #don't squeeze if num_replicates is not None
+        assert windowed_stats.shape == (
+            num_replicates,
+            self.design.num_windows,
+            self.num_statistics,
+        )
+        return np.apply_along_axis(
+            self.reduction, 2, windowed_stats
+        ).squeeze()  # don't squeeze if num_replicates is not None
 
     def resample(self, num_replicates=1, random_seed=None):
         """
@@ -403,8 +439,8 @@ class BlockBootstrap:
         # size of 'bootstrap weights'. choose 'chunk size' to keep total
         # dimension bounded
         bootstrap_weights = self.rng.multinomial(
-            self.design.blocks_per_window, 
-            [1/self.design.blocks_per_window]*self.design.blocks_per_window,
+            self.design.blocks_per_window,
+            [1 / self.design.blocks_per_window] * self.design.blocks_per_window,
             (num_replicates, self.design.num_windows),
         )
         return self._recalculate_statistic(bootstrap_weights)
@@ -415,9 +451,7 @@ class BlockBootstrap:
         The statistic calcuated from the actual data.
         """
 
-        weights = np.ones(
-            (1, self.design.num_windows, self.design.blocks_per_window)
-        )
+        weights = np.ones((1, self.design.num_windows, self.design.blocks_per_window))
         return self._recalculate_statistic(weights)
 
     def mean(self, num_replicates, random_seed=None):
@@ -433,7 +467,7 @@ class BlockBootstrap:
         mean = np.zeros(self.observed_value.shape)
         for n in range(num_replicates):
             replicate = self.resample()
-            mean += (replicate - mean)/(n + 1)
+            mean += (replicate - mean) / (n + 1)
         return mean
 
     def variance(self, num_replicates, random_seed=None):
@@ -451,8 +485,8 @@ class BlockBootstrap:
         for n in range(num_replicates):
             replicate = self.resample()
             delta = replicate - mean
-            mean += delta/(n + 1)
-            var += delta*(replicate - mean)
+            mean += delta / (n + 1)
+            var += delta * (replicate - mean)
         return var / (num_replicates - 1)
 
     def stddev(self, num_replicates, random_seed=None):
@@ -488,26 +522,12 @@ class BlockBootstrap:
         for n in range(num_replicates):
             replicate = self.resample()
             delta = replicate - mean
-            mean += delta/(n + 1)
-            delta_w = (replicate - mean)/(n + 1)
-            covar = covar * n/(n + 1) + np.einsum('...i,...j->...ij', delta, delta_w)
-        return covar * num_replicates/(num_replicates - 1)
+            mean += delta / (n + 1)
+            delta_w = (replicate - mean) / (n + 1)
+            covar = covar * n / (n + 1) + np.einsum("...i,...j->...ij", delta, delta_w)
+        return covar * num_replicates / (num_replicates - 1)
 
-    #def quantiles(self, quantiles, num_replicates):
+    # def quantiles(self, quantiles, num_replicates):
     #    """
     #    TODO: will have to be approximate for streaming calculation
     #    """
-
-
-
-
-
-
-
-
-
-
-
-
-
-
