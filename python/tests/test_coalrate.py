@@ -36,6 +36,7 @@ from tests import tsutil
 def _pair_coalescence_counts_identity(
     coalescing_pairs,
     nodes_time,
+    nodes_order,
 ):
     return coalescing_pairs
 
@@ -43,22 +44,25 @@ def _pair_coalescence_counts_identity(
 def _pair_coalescence_counts_sum(
     coalescing_pairs,
     nodes_time,
+    nodes_order,
     time_windows,
 ):
     """
     Sum `coalescing_pairs` for all nodes falling in the time windows
-    defined by `time_windows`. Nodes are assumed to be in time order.
+    defined by `time_windows`. Nodes should be sorted to time order by
+    `nodes_order`.
     """
-    num_nodes, num_indexes = coalescing_pairs.shape
-    num_breaks = time_windows.size
-    output = np.zeros((num_breaks - 1, num_indexes))
-    i, j = 0, 0
-    for a, b in zip(time_windows[:-1], time_windows[1:]):
-        while i < num_nodes and nodes_time[i] < b:
-            if a <= nodes_time[i] < b:
-                output[j] += coalescing_pairs[i]
+    assert nodes_time.size == coalescing_pairs.size == nodes_order.size
+    num_nodes = coalescing_pairs.size
+    num_windows = time_windows.size - 1
+    output = np.zeros(num_windows)
+    i = 0
+    for j in range(num_windows):
+        a, b = time_windows[j : j + 2]
+        while i < num_nodes and nodes_time[nodes_order[i]] < b:
+            if a <= nodes_time[nodes_order[i]] < b:
+                output[j] += coalescing_pairs[nodes_order[i]]
             i += 1
-        j += 1
     return output
 
 
@@ -73,7 +77,7 @@ def _pair_coalescence_stat(
     span_normalise=True,
 ):
     """
-    Apply `summary_func(node_weights, node_times, **summary_func_kwargs)` to
+    Apply `summary_func(node_weights, node_times, node_order, **summary_func_kwargs)` to
     the empirical distribution of pair coalescence times for each index / window.
     """
 
@@ -200,8 +204,9 @@ def _pair_coalescence_stat(
                 nodes_weight /= windows[w + 1] - windows[w]
             for i in range(num_indexes):  # apply function to empirical distribution
                 output[w, :, i] = summary_func(
-                    nodes_weight[nodes_order, i],
-                    nodes_time[nodes_order],
+                    nodes_weight[:, i],
+                    nodes_time,
+                    nodes_order,
                     **summary_func_kwargs,
                 )
             w += 1
@@ -509,7 +514,7 @@ class TestCoalescingPairsOneTree:
         np.testing.assert_allclose(implm, check)
         # TODO: remove with prototype
         proto = proto_pair_coalescence_counts(
-            span_normalise=False, time_windows=time_windows
+            ts, span_normalise=False, time_windows=time_windows
         )
         np.testing.assert_allclose(proto, check)
 
@@ -726,7 +731,8 @@ class TestCoalescingPairsSimulated:
         np.testing.assert_allclose(implm, check)
         # TODO: remove with prototype
         proto = proto_pair_coalescence_counts(ts, windows=windows, span_normalise=False)
-        np.testing.assert_allclose(implm, proto)
+        print(proto[proto != check])  # DEBUG
+        np.testing.assert_allclose(proto, check)
 
     @staticmethod
     def _check_subset_pairs(ts, windows):
@@ -752,7 +758,7 @@ class TestCoalescingPairsSimulated:
             windows=windows,
             span_normalise=False,
         )
-        np.testing.assert_allclose(implm, proto)
+        np.testing.assert_allclose(proto, check)
 
     def test_sequence(self):
         ts = self.example_ts()
