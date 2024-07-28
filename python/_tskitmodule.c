@@ -9860,6 +9860,150 @@ out:
     return ret;
 }
 
+/* TODO:
+ * in the default case (no time windows) we calculate statistics at the level of nodes.
+ * this is triggered by a zero-length time windows array, rather than None, to avoid
+ * juggling NULL pointers. Is there a better way to go about this? */
+static int
+parse_time_windows(
+    PyObject *time_windows, PyArrayObject **ret_array, tsk_size_t *ret_num_time_windows)
+{
+    int ret = -1;
+    tsk_size_t num_time_windows = 0;
+    PyArrayObject *time_windows_array = NULL;
+    npy_intp *shape;
+
+    time_windows_array = (PyArrayObject *) PyArray_FROMANY(
+        time_windows, NPY_FLOAT64, 1, 1, NPY_ARRAY_IN_ARRAY);
+    if (time_windows_array == NULL) {
+        goto out;
+    }
+    shape = PyArray_DIMS(time_windows_array);
+    if (shape[0] == 1) { /* allow zero length array */
+        PyErr_SetString(
+            PyExc_ValueError, "Time windows array must have at least 2 elements");
+        goto out;
+    }
+    num_time_windows = shape[0] > 0 ? shape[0] - 1 : 0;
+    ret = 0;
+out:
+    *ret_num_time_windows = num_time_windows;
+    *ret_array = time_windows_array;
+    return ret;
+}
+
+static int
+parse_set_indexes(PyObject *indexes, PyArrayObject **ret_array,
+    tsk_size_t *ret_num_indexes, npy_intp tuple_size)
+{
+    int ret = -1;
+    tsk_size_t num_indexes = 0;
+    PyArrayObject *indexes_array = NULL;
+    npy_intp *shape;
+
+    indexes_array = (PyArrayObject *) PyArray_FROMANY(
+        indexes, NPY_INT32, 2, 2, NPY_ARRAY_IN_ARRAY);
+    if (indexes_array == NULL) {
+        goto out;
+    }
+    shape = PyArray_DIMS(indexes_array);
+    if (shape[0] < 1 || shape[1] != tuple_size) {
+        PyErr_Format(
+            PyExc_ValueError, "indexes must be a k x %d array.", (int) tuple_size);
+        goto out;
+    }
+    num_indexes = shape[0];
+    ret = 0;
+out:
+    *ret_num_indexes = num_indexes;
+    *ret_array = indexes_array;
+    return ret;
+}
+
+static PyObject *
+TreeSequence_pair_coalescence_counts(TreeSequence *self, PyObject *args, PyObject *kwds)
+{
+    PyObject *ret = NULL;
+
+    static char *kwlist[] = { "windows", "sample_set_sizes", "sample_sets", "indexes",
+        "time_windows", "span_normalise", NULL };
+    PyObject *py_sample_set_sizes = Py_None;
+    PyObject *py_sample_sets = Py_None;
+    PyObject *py_windows = Py_None;
+    PyObject *py_time_windows = Py_None;
+    PyObject *py_indexes = Py_None;
+    PyArrayObject *result_array = NULL;
+    PyArrayObject *windows_array = NULL;
+    PyArrayObject *time_windows_array = NULL;
+    PyArrayObject *indexes_array = NULL;
+    PyArrayObject *sample_set_sizes_array = NULL;
+    PyArrayObject *sample_sets_array = NULL;
+    tsk_flags_t options = 0;
+    tsk_size_t num_indexes = 0;
+    tsk_size_t num_sample_sets = 0;
+    tsk_size_t num_windows = 0;
+    tsk_size_t num_time_windows = 0;
+    int span_normalise = 0;
+    int err;
+
+    if (TreeSequence_check_state(self) != 0) {
+        goto out;
+    }
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "OOOOO|i", kwlist, &py_windows,
+            &py_sample_set_sizes, &py_sample_sets, &py_indexes, &py_time_windows,
+            &span_normalise)) {
+        goto out;
+    }
+    if (parse_sample_sets(py_sample_set_sizes, &sample_set_sizes_array, py_sample_sets,
+            &sample_sets_array, &num_sample_sets)
+        != 0) {
+        goto out;
+    }
+    if (parse_windows(py_windows, &windows_array, &num_windows) != 0) {
+        goto out;
+    }
+    if (parse_set_indexes(py_indexes, &indexes_array, &num_indexes, 2) != 0) {
+        goto out;
+    }
+    if (parse_time_windows(py_time_windows, &time_windows_array, &num_time_windows)
+        != 0) {
+        goto out;
+    }
+    if (span_normalise) {
+        options |= TSK_STAT_SPAN_NORMALISE;
+    }
+
+    tsk_size_t num_nodes = tsk_treeseq_get_num_nodes(self->tree_sequence);
+    npy_intp dims[3];
+    dims[0] = num_windows;
+    dims[1] = num_time_windows > 0 ? num_time_windows : num_nodes;
+    dims[2] = num_indexes;
+    result_array = (PyArrayObject *) PyArray_SimpleNew(3, dims, NPY_FLOAT64);
+    if (result_array == NULL) {
+        goto out;
+    }
+
+    err = tsk_treeseq_pair_coalescence_stat(self->tree_sequence, num_sample_sets,
+        PyArray_DATA(sample_set_sizes_array), PyArray_DATA(sample_sets_array),
+        num_indexes, PyArray_DATA(indexes_array), num_windows,
+        PyArray_DATA(windows_array), num_time_windows, PyArray_DATA(time_windows_array),
+        options, PyArray_DATA(result_array));
+    if (err != 0) {
+        handle_library_error(err);
+        goto out;
+    }
+    ret = (PyObject *) result_array;
+    result_array = NULL;
+out:
+    Py_XDECREF(sample_set_sizes_array);
+    Py_XDECREF(sample_sets_array);
+    Py_XDECREF(windows_array);
+    Py_XDECREF(indexes_array);
+    Py_XDECREF(time_windows_array);
+    Py_XDECREF(result_array);
+    return ret;
+}
+
 static PyObject *
 TreeSequence_ld_matrix(TreeSequence *self, PyObject *args, PyObject *kwds,
     two_locus_count_stat_method *method)
@@ -10700,6 +10844,10 @@ static PyMethodDef TreeSequence_methods[] = {
         .ml_meth = (PyCFunction) TreeSequence_divergence_matrix,
         .ml_flags = METH_VARARGS | METH_KEYWORDS,
         .ml_doc = "Computes the pairwise divergence matrix." },
+    { .ml_name = "pair_coalescence_counts",
+        .ml_meth = (PyCFunction) TreeSequence_pair_coalescence_counts,
+        .ml_flags = METH_VARARGS | METH_KEYWORDS,
+        .ml_doc = "Computes the number of coalescing pairs per node." },
     { .ml_name = "split_edges",
         .ml_meth = (PyCFunction) TreeSequence_split_edges,
         .ml_flags = METH_VARARGS | METH_KEYWORDS,
