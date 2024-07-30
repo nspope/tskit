@@ -8176,6 +8176,7 @@ get_time_windows_index_map(const tsk_treeseq_t *self, tsk_size_t *num_time_windo
     int ret = 0;
     const tsk_table_collection_t *tables = self->tables;
     const tsk_size_t num_nodes = tables->nodes.num_rows;
+    tsk_node_argsort_t *nodes_time = NULL;
     tsk_size_t i, j;
 
     if (*num_time_windows == 0) { /* keep nodes unpooled */
@@ -8186,7 +8187,8 @@ get_time_windows_index_map(const tsk_treeseq_t *self, tsk_size_t *num_time_windo
         goto out;
     }
 
-    tsk_node_argsort_t *nodes_time = tsk_malloc(num_nodes * sizeof(*nodes_time));
+    // tsk_node_argsort_t *nodes_time = tsk_malloc(num_nodes * sizeof(*nodes_time));
+    nodes_time = tsk_malloc(num_nodes * sizeof(*nodes_time));
     if (nodes_time == NULL) {
         ret = TSK_ERR_NO_MEMORY;
         goto out;
@@ -8221,14 +8223,23 @@ tsk_treeseq_pair_coalescence_stat(const tsk_treeseq_t *self, tsk_size_t num_samp
     int ret = 0;
     double left, right, remaining_span, window_span;
     tsk_id_t e, p, c, u, v, n, w, i, j, k, row, col, inp;
-    tsk_size_t total_samples, inp_dim, col_dim, row_dim;
+    tsk_size_t total_samples;
     int weight;
     tsk_tree_position_t tree_pos;
     const tsk_table_collection_t *tables = self->tables;
     const tsk_size_t num_nodes = tables->nodes.num_rows;
     const double sequence_length = tables->sequence_length;
+    tsk_id_t *nodes_sample_set = NULL;
+    tsk_id_t *nodes_parent = NULL;
+    tsk_id_t *nodes_sample = NULL;
+    tsk_id_t *sample_count = NULL;
+    tsk_id_t *nodes_time_window = NULL;
+    tsk_id_t *inside = NULL;
+    tsk_id_t *outside = NULL;
+    double *coalescing_pairs = NULL;
+    double *nodes_weight = NULL;
 
-    tsk_id_t *nodes_sample_set = tsk_malloc(num_nodes * sizeof(*nodes_sample_set));
+    nodes_sample_set = tsk_malloc(num_nodes * sizeof(*nodes_sample_set));
     if (nodes_sample_set == NULL) {
         ret = TSK_ERR_NO_MEMORY;
         goto out;
@@ -8239,29 +8250,28 @@ tsk_treeseq_pair_coalescence_stat(const tsk_treeseq_t *self, tsk_size_t num_samp
         goto out;
     }
 
-    inp_dim = num_sample_sets;
-    inp = (tsk_id_t) inp_dim;
-    col_dim = num_set_indexes;
-    col = (tsk_id_t) col_dim;
-    tsk_id_t *nodes_parent = tsk_malloc(num_nodes * sizeof(*nodes_parent));
-    int *nodes_sample = tsk_malloc(num_nodes * inp_dim * sizeof(*nodes_sample));
-    int *sample_count = tsk_malloc(num_nodes * inp_dim * sizeof(*sample_count));
+    inp = (tsk_id_t) num_sample_sets;
+    col = (tsk_id_t) num_set_indexes;
+    nodes_parent = tsk_malloc(num_nodes * sizeof(*nodes_parent));
+    nodes_sample = tsk_malloc(num_nodes * (tsk_size_t) inp * sizeof(*nodes_sample));
+    sample_count = tsk_malloc(num_nodes * (tsk_size_t) inp * sizeof(*sample_count));
     if (nodes_parent == NULL || nodes_sample == NULL || sample_count == NULL) {
         ret = TSK_ERR_NO_MEMORY;
         goto out;
     }
-    tsk_memset(nodes_sample, 0, num_nodes * inp_dim * sizeof(*nodes_sample));
+    tsk_memset(nodes_sample, 0, num_nodes * (tsk_size_t) inp * sizeof(*nodes_sample));
     for (i = 0; i != (tsk_id_t) num_nodes; i++) {
         if (nodes_sample_set[i] != TSK_NULL) {
             nodes_sample[i * inp + nodes_sample_set[i]] = 1;
         }
     }
-    tsk_memcpy(sample_count, nodes_sample, num_nodes * inp_dim * sizeof(*sample_count));
+    tsk_memcpy(sample_count, nodes_sample,
+        num_nodes * (tsk_size_t) inp * sizeof(*sample_count));
     for (i = 0; i != (tsk_id_t) num_nodes; i++) {
         nodes_parent[i] = TSK_NULL;
     }
 
-    tsk_id_t *nodes_time_window = tsk_malloc(num_nodes * sizeof(*nodes_time_window));
+    nodes_time_window = tsk_malloc(num_nodes * sizeof(*nodes_time_window));
     if (nodes_time_window == NULL) {
         ret = TSK_ERR_NO_MEMORY;
         goto out;
@@ -8271,18 +8281,23 @@ tsk_treeseq_pair_coalescence_stat(const tsk_treeseq_t *self, tsk_size_t num_samp
     if (ret != 0) {
         goto out;
     }
-    row_dim = num_time_windows;
-    row = (tsk_id_t) row_dim;
-    int *inside = tsk_malloc(col_dim * sizeof(inside));
-    int *outside = tsk_malloc(col_dim * sizeof(outside));
-    double *coalescing_pairs = tsk_malloc(row_dim * col_dim * sizeof(coalescing_pairs));
-    double *nodes_weight = tsk_malloc(row_dim * col_dim * sizeof(nodes_weight));
-    if (inside == NULL || outside == NULL || coalescing_pairs == NULL
-        || nodes_weight == NULL) {
+    row = (tsk_id_t) num_time_windows;
+    inside = tsk_malloc((tsk_size_t) col * sizeof(inside));
+    outside = tsk_malloc((tsk_size_t) col * sizeof(outside));
+    if (inside == NULL || outside == NULL) {
         ret = TSK_ERR_NO_MEMORY;
         goto out;
     }
-    tsk_memset(coalescing_pairs, 0, row_dim * col_dim * sizeof(*coalescing_pairs));
+    coalescing_pairs
+        = tsk_malloc((tsk_size_t) row * (tsk_size_t) col * sizeof(coalescing_pairs));
+    nodes_weight
+        = tsk_malloc((tsk_size_t) row * (tsk_size_t) col * sizeof(nodes_weight));
+    if (coalescing_pairs == NULL || nodes_weight == NULL) {
+        ret = TSK_ERR_NO_MEMORY;
+        goto out;
+    }
+    tsk_memset(coalescing_pairs, 0,
+        (tsk_size_t) row * (tsk_size_t) col * sizeof(*coalescing_pairs));
 
     tsk_memset(&tree_pos, 0, sizeof(tree_pos));
     ret = tsk_tree_position_init(&tree_pos, self, 0);
@@ -8380,9 +8395,9 @@ tsk_treeseq_pair_coalescence_stat(const tsk_treeseq_t *self, tsk_size_t num_samp
             w != (tsk_id_t) num_windows && windows[w + 1] <= right) { /* flush window */
             remaining_span = sequence_length - windows[w + 1];
             tsk_memcpy(nodes_weight, coalescing_pairs,
-                row_dim * col_dim * sizeof(*nodes_weight));
-            tsk_memset(
-                coalescing_pairs, 0, row_dim * col_dim * sizeof(*coalescing_pairs));
+                (tsk_size_t) row * (tsk_size_t) col * sizeof(*nodes_weight));
+            tsk_memset(coalescing_pairs, 0,
+                (tsk_size_t) row * (tsk_size_t) col * sizeof(*coalescing_pairs));
             for (n = 0; n != (tsk_id_t) num_nodes; n++) {
                 /* TODO: better to loop over only those nodes in tree, by
                  * following nodes_parent up from samples; this should always
@@ -8422,7 +8437,7 @@ tsk_treeseq_pair_coalescence_stat(const tsk_treeseq_t *self, tsk_size_t num_samp
             //     reduce(i, col_dim, nodes_weight, &result[w * row_dim * col_dim])
             // };
             tsk_memcpy(&result[w * row * col], nodes_weight,
-                row_dim * col_dim * sizeof(*result));
+                (tsk_size_t) row * (tsk_size_t) col * sizeof(*result));
             w += 1;
         }
     }
