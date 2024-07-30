@@ -8224,18 +8224,18 @@ tsk_treeseq_pair_coalescence_stat(const tsk_treeseq_t *self, tsk_size_t num_samp
     double left, right, remaining_span, window_span;
     tsk_id_t e, p, c, u, v, n, w, i, j, k, row, col, inp;
     tsk_size_t total_samples;
-    tsk_id_t weight;
+    int weight;
     tsk_tree_position_t tree_pos;
     const tsk_table_collection_t *tables = self->tables;
     const tsk_size_t num_nodes = tables->nodes.num_rows;
     const double sequence_length = tables->sequence_length;
     tsk_id_t *nodes_sample_set = NULL;
     tsk_id_t *nodes_parent = NULL;
-    tsk_id_t *nodes_sample = NULL;
-    tsk_id_t *sample_count = NULL;
     tsk_id_t *nodes_time_window = NULL;
-    tsk_id_t *inside = NULL;
-    tsk_id_t *outside = NULL;
+    int *nodes_sample = NULL;
+    int *sample_count = NULL;
+    int *inside = NULL;
+    int *outside = NULL;
     double *coalescing_pairs = NULL;
     double *nodes_weight = NULL;
 
