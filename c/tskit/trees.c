@@ -8224,7 +8224,7 @@ tsk_treeseq_pair_coalescence_stat(const tsk_treeseq_t *self, tsk_size_t num_samp
     double left, right, remaining_span, window_span;
     tsk_id_t e, p, c, u, v, n, w, i, j, k, row, col, inp;
     tsk_size_t total_samples;
-    int weight;
+    tsk_id_t weight;
     tsk_tree_position_t tree_pos;
     const tsk_table_collection_t *tables = self->tables;
     const tsk_size_t num_nodes = tables->nodes.num_rows;
