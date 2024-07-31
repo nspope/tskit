@@ -82,11 +82,6 @@ if not meson.is_subproject()
         link_with: [tskit_lib, test_lib], c_args: extra_c_args, dependencies: kastore_dep)
     test('haplotype_matching', test_haplotype_matching)
 
-    test_coalrate = executable('test_coalrate',
-        sources: ['tests/test_coalrate.c'],
-        link_with: [tskit_lib, test_lib], c_args: extra_c_args, dependencies: kastore_dep)
-    test('coalrate', test_coalrate)
-
     test_file_format = executable('test_file_format',
         sources: ['tests/test_file_format.c'],
         link_with: [tskit_lib, test_lib], c_args: extra_c_args, dependencies: kastore_dep)
