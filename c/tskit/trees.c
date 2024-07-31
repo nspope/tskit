@@ -8404,8 +8404,11 @@ tsk_treeseq_pair_coalescence_stat(const tsk_treeseq_t *self, tsk_size_t num_samp
                  * be fine, I think, as disconnected nodes will have zero
                  * values anyway? */
                 p = nodes_parent[n];
+                if (p == TSK_NULL) {
+                    continue;
+                }
                 v = nodes_time_window[p];
-                if (p == TSK_NULL || v == TSK_NULL) {
+                if (v == TSK_NULL) {
                     continue;
                 }
                 for (i = 0; i != inp; i++) {

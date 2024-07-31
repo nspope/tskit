@@ -221,8 +221,10 @@ def _pair_coalescence_stat(
             nodes_weight[:] = coalescing_pairs[:]
             coalescing_pairs[:] = 0.0
             for c, p in enumerate(nodes_parent):
+                if p == tskit.NULL:
+                    continue
                 u = nodes_map[p]
-                if p == tskit.NULL or u == tskit.NULL:
+                if u == tskit.NULL:
                     continue
                 inside = sample_counts[c]
                 outside = sample_counts[p] - sample_counts[c] - nodes_sample[p]
