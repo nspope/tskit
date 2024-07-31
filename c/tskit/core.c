@@ -484,6 +484,14 @@ tsk_strerror_internal(int err)
             ret = "Insufficient weights provided (at least 1 required). "
                   "(TSK_ERR_INSUFFICIENT_WEIGHTS)";
             break;
+        case TSK_ERR_BAD_TIME_WINDOWS:
+            ret = "Time windows must be an increasing list of breakpoints. "
+                  "(TSK_ERR_BAD_TIME_WINDOWS)";
+            break;
+        case TSK_ERR_BAD_NUM_TIME_WINDOWS:
+            ret = "Time windows must have at least two breakpoints. "
+                  "(TSK_ERR_BAD_NUM_TIME_WINDOWS)";
+            break;
 
         /* Mutation mapping errors */
         case TSK_ERR_GENOTYPES_ALL_MISSING:

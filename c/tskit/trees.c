@@ -1232,6 +1232,27 @@ out:
     return ret;
 }
 
+static int
+tsk_treeseq_check_time_windows(
+    const tsk_treeseq_t *self, tsk_size_t num_time_windows, const double *time_windows)
+{
+    int ret = TSK_ERR_BAD_TIME_WINDOWS;
+    tsk_size_t j;
+
+    if (num_time_windows == 1) {
+        ret = TSK_ERR_BAD_NUM_TIME_WINDOWS;
+        goto out;
+    }
+    for (j = 0; j < num_time_windows; j++) {
+        if (time_windows[j] >= time_windows[j + 1]) {
+            goto out;
+        }
+    }
+    ret = 0;
+out:
+    return ret;
+}
+
 /* TODO make these functions more consistent in how the arguments are ordered */
 
 static inline void
@@ -8187,7 +8208,6 @@ get_time_windows_index_map(const tsk_treeseq_t *self, tsk_size_t *num_time_windo
         goto out;
     }
 
-    // tsk_node_argsort_t *nodes_time = tsk_malloc(num_nodes * sizeof(*nodes_time));
     nodes_time = tsk_malloc(num_nodes * sizeof(*nodes_time));
     if (nodes_time == NULL) {
         ret = TSK_ERR_NO_MEMORY;
@@ -8239,6 +8259,27 @@ tsk_treeseq_pair_coalescence_stat(const tsk_treeseq_t *self, tsk_size_t num_samp
     double *coalescing_pairs = NULL;
     double *nodes_weight = NULL;
 
+    /* check inputs */
+    ret = tsk_treeseq_check_windows(self, num_windows, windows, options);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = tsk_treeseq_check_time_windows(self, num_time_windows, time_windows);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = check_set_indexes(num_sample_sets, 2 * num_set_indexes, set_indexes);
+    if (ret != 0) {
+        goto out;
+    }
+    ret = tsk_treeseq_check_sample_sets(
+        self, num_sample_sets, sample_set_sizes, sample_sets);
+    if (ret != 0) {
+        goto out;
+    }
+    /* TODO: set defaults? */
+
+    /* map nodes to sample sets */
     nodes_sample_set = tsk_malloc(num_nodes * sizeof(*nodes_sample_set));
     if (nodes_sample_set == NULL) {
         ret = TSK_ERR_NO_MEMORY;
@@ -8250,6 +8291,7 @@ tsk_treeseq_pair_coalescence_stat(const tsk_treeseq_t *self, tsk_size_t num_samp
         goto out;
     }
 
+    /* initialize internal state */
     inp = (tsk_id_t) num_sample_sets;
     col = (tsk_id_t) num_set_indexes;
     nodes_parent = tsk_malloc(num_nodes * sizeof(*nodes_parent));
@@ -8271,6 +8313,7 @@ tsk_treeseq_pair_coalescence_stat(const tsk_treeseq_t *self, tsk_size_t num_samp
         nodes_parent[i] = TSK_NULL;
     }
 
+    /* map nodes to time windows */
     nodes_time_window = tsk_malloc(num_nodes * sizeof(*nodes_time_window));
     if (nodes_time_window == NULL) {
         ret = TSK_ERR_NO_MEMORY;
@@ -8281,6 +8324,8 @@ tsk_treeseq_pair_coalescence_stat(const tsk_treeseq_t *self, tsk_size_t num_samp
     if (ret != 0) {
         goto out;
     }
+
+    /* initialize outputs */
     row = (tsk_id_t) num_time_windows;
     inside = tsk_malloc((tsk_size_t) col * sizeof(inside));
     outside = tsk_malloc((tsk_size_t) col * sizeof(outside));

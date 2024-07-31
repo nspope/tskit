@@ -694,6 +694,15 @@ not support it.
 Insufficient weights were provided.
 */
 #define TSK_ERR_INSUFFICIENT_WEIGHTS                                -913
+/**
+A single time break was specified, no or multiple time breaks must be
+specified
+*/
+#define TSK_ERR_BAD_NUM_TIME_WINDOWS                                -914
+/**
+The time window specification was not an increasing list of breakpoints
+*/
+#define TSK_ERR_BAD_TIME_WINDOWS                                    -915
 /** @} */
 
 /**

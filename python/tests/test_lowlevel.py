@@ -1691,6 +1691,119 @@ class TestTreeSequence(LowLevelTestCase, MetadataTestMixin):
         with pytest.raises(_tskit.LibraryError, match="UNSUPPORTED_STAT_MODE"):
             ts.divergence_matrix([0, 1], sizes, ids, mode="node")
 
+    def test_pair_coalescence_counts(self):
+        n = 10
+        ts = self.get_example_tree_sequence(n, random_seed=12)
+        N = ts.get_num_nodes()
+        ids = np.arange(n, dtype=np.int32)
+        sizes = [n // 2, n - n // 2]
+        indexes = [(0, 0), (0, 1), (1, 1)]
+        windows = np.array([0, 0.5, 1.0]) * ts.get_sequence_length()
+        time_windows = np.array([0, 0.5, 1.0]) * ts.get_max_time()
+        coal = ts.pair_coalescence_counts(
+            sample_sets=ids,
+            sample_set_sizes=sizes,
+            windows=windows,
+            indexes=indexes,
+            time_windows=[],
+        )
+        assert coal.shape == (len(windows) - 1, N, len(indexes))
+        coal = ts.pair_coalescence_counts(
+            sample_sets=ids,
+            sample_set_sizes=sizes,
+            windows=windows,
+            indexes=indexes,
+            time_windows=time_windows,
+        )
+        assert coal.shape == (len(windows) - 1, len(time_windows) - 1, len(indexes))
+        coal = ts.pair_coalescence_counts(
+            sample_sets=ids,
+            sample_set_sizes=sizes,
+            windows=windows,
+            indexes=indexes,
+            time_windows=time_windows,
+            span_normalise=True,
+        )
+        assert coal.shape == (len(windows) - 1, len(time_windows) - 1, len(indexes))
+
+        # C errors
+        for bad_node in [-1, -2, 1000]:
+            with pytest.raises(_tskit.LibraryError, match="TSK_ERR_NODE_OUT_OF_BOUNDS"):
+                coal = ts.pair_coalescence_counts(
+                    sample_sets=np.append(ids[:-1], bad_node).astype(np.int32),
+                    sample_set_sizes=sizes,
+                    windows=windows,
+                    indexes=indexes,
+                    time_windows=time_windows,
+                )
+        with pytest.raises(_tskit.LibraryError, match="BAD_WINDOWS"):
+            coal = ts.pair_coalescence_counts(
+                sample_sets=ids,
+                sample_set_sizes=sizes,
+                windows=np.append(-1.0, windows),
+                indexes=indexes,
+                time_windows=time_windows,
+            )
+        with pytest.raises(_tskit.LibraryError, match="BAD_TIME_WINDOWS"):
+            coal = ts.pair_coalescence_counts(
+                sample_sets=ids,
+                sample_set_sizes=sizes,
+                windows=windows,
+                indexes=indexes,
+                time_windows=np.append(time_windows, 0.0),
+            )
+        with pytest.raises(_tskit.LibraryError, match="BAD_SAMPLE_SET_INDEX"):
+            coal = ts.pair_coalescence_counts(
+                sample_sets=ids,
+                sample_set_sizes=sizes,
+                windows=windows,
+                indexes=[(0, 10)],
+                time_windows=time_windows,
+            )
+
+        # CPython errors
+        with pytest.raises(ValueError, match="Sum of sample_set_sizes"):
+            coal = ts.pair_coalescence_counts(
+                sample_sets=ids,
+                sample_set_sizes=[n, n],
+                windows=windows,
+                indexes=indexes,
+                time_windows=time_windows,
+            )
+        with pytest.raises((ValueError, OverflowError), match="Overflow|out of bounds"):
+            coal = ts.pair_coalescence_counts(
+                sample_sets=ids,
+                sample_set_sizes=[-1, n],
+                windows=windows,
+                indexes=indexes,
+                time_windows=time_windows,
+            )
+        with pytest.raises(TypeError, match="str"):
+            coal = ts.pair_coalescence_counts(
+                sample_sets=ids,
+                sample_set_sizes=sizes,
+                windows=windows,
+                indexes=indexes,
+                time_windows=time_windows,
+                span_normalise="foo",
+            )
+        with pytest.raises(TypeError):
+            coal = ts.pair_coalescence_counts(
+                sample_sets=ids,
+                sample_set_sizes=sizes,
+                windoze=[0, 1],
+                indexes=indexes,
+                time_windows=time_windows,
+            )
+        with pytest.raises(ValueError, match="at least 2"):
+            coal = ts.pair_coalescence_counts(
+                sample_sets=ids,
+                sample_set_sizes=sizes,
+                windows=[0.0],
+                indexes=indexes,
+                time_windows=time_windows,
+            )
+
     def test_load_tables_build_indexes(self):
         for ts in self.get_example_tree_sequences():
             tables = _tskit.TableCollection(sequence_length=ts.get_sequence_length())
