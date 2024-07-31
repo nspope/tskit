@@ -1233,8 +1233,7 @@ out:
 }
 
 static int
-tsk_treeseq_check_time_windows(
-    const tsk_treeseq_t *self, tsk_size_t num_time_windows, const double *time_windows)
+check_time_windows(tsk_size_t num_time_windows, const double *time_windows)
 {
     int ret = TSK_ERR_BAD_TIME_WINDOWS;
     tsk_size_t j;
@@ -8264,7 +8263,7 @@ tsk_treeseq_pair_coalescence_stat(const tsk_treeseq_t *self, tsk_size_t num_samp
     if (ret != 0) {
         goto out;
     }
-    ret = tsk_treeseq_check_time_windows(self, num_time_windows, time_windows);
+    ret = check_time_windows(num_time_windows, time_windows);
     if (ret != 0) {
         goto out;
     }
