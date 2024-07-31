@@ -2835,10 +2835,13 @@ test_pair_coalescence_counts(void)
         nonbinary_ex_sites, nonbinary_ex_mutations, NULL, NULL, 0);
     double max_time = tsk_treeseq_get_max_time(&ts);
     double time_windows[3] = { 0.0, max_time / 2, INFINITY };
+    double trunc_windows[3] = { max_time * 0.2, max_time * 0.5, max_time * 0.8 };
     verify_pair_coalescence_counts(&ts, 0, NULL, 0);
     verify_pair_coalescence_counts(&ts, 0, NULL, TSK_STAT_SPAN_NORMALISE);
     verify_pair_coalescence_counts(&ts, 2, time_windows, 0);
     verify_pair_coalescence_counts(&ts, 2, time_windows, TSK_STAT_SPAN_NORMALISE);
+    verify_pair_coalescence_counts(&ts, 2, trunc_windows, 0);
+    verify_pair_coalescence_counts(&ts, 2, trunc_windows, TSK_STAT_SPAN_NORMALISE);
     tsk_treeseq_free(&ts);
 }
 
