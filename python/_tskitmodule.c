@@ -9943,7 +9943,6 @@ TreeSequence_pair_coalescence_counts(TreeSequence *self, PyObject *args, PyObjec
     tsk_size_t num_sample_sets = 0;
     tsk_size_t num_windows = 0;
     tsk_size_t num_time_windows = 0;
-    tsk_size_t num_nodes = tsk_treeseq_get_num_nodes(self->tree_sequence);
     int span_normalise = 0;
     int err;
 
@@ -9964,7 +9963,6 @@ TreeSequence_pair_coalescence_counts(TreeSequence *self, PyObject *args, PyObjec
         goto out;
     }
     if (parse_set_indexes(py_indexes, &indexes_array, &num_indexes, 2) != 0) {
-        // TODO add check for OOR sample set
         goto out;
     }
     if (parse_time_windows(py_time_windows, &time_windows_array, &num_time_windows)
@@ -9975,6 +9973,7 @@ TreeSequence_pair_coalescence_counts(TreeSequence *self, PyObject *args, PyObjec
         options |= TSK_STAT_SPAN_NORMALISE;
     }
 
+    tsk_size_t num_nodes = tsk_treeseq_get_num_nodes(self->tree_sequence);
     npy_intp dims[3];
     dims[0] = num_windows;
     dims[1] = num_time_windows > 0 ? num_time_windows : num_nodes;
