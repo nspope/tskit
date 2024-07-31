@@ -9879,12 +9879,12 @@ parse_time_windows(
         goto out;
     }
     shape = PyArray_DIMS(time_windows_array);
-    if (shape[0] == 1) { /* allow zero length array */
+    if (shape[0] < 2) { /* allow zero length array */
         PyErr_SetString(
             PyExc_ValueError, "Time windows array must have at least 2 elements");
         goto out;
     }
-    num_time_windows = shape[0] > 0 ? shape[0] - 1 : 0;
+    num_time_windows = shape[0] - 1;
     ret = 0;
 out:
     *ret_num_time_windows = num_time_windows;
@@ -9925,6 +9925,8 @@ TreeSequence_pair_coalescence_counts(TreeSequence *self, PyObject *args, PyObjec
 {
     PyObject *ret = NULL;
 
+    // static char *kwlist[] = { "windows", "sample_set_sizes", "sample_sets", "indexes",
+    //    "time_windows", "span_normalise", "nodes_output", NULL };
     static char *kwlist[] = { "windows", "sample_set_sizes", "sample_sets", "indexes",
         "time_windows", "span_normalise", NULL };
     PyObject *py_sample_set_sizes = Py_None;
@@ -9944,6 +9946,7 @@ TreeSequence_pair_coalescence_counts(TreeSequence *self, PyObject *args, PyObjec
     tsk_size_t num_windows = 0;
     tsk_size_t num_time_windows = 0;
     int span_normalise = 0;
+    // int nodes_output = 0;
     int err;
 
     if (TreeSequence_check_state(self) != 0) {
@@ -9972,11 +9975,15 @@ TreeSequence_pair_coalescence_counts(TreeSequence *self, PyObject *args, PyObjec
     if (span_normalise) {
         options |= TSK_STAT_SPAN_NORMALISE;
     }
+    // if (nodes_output) {
+    //    options |= TSK_STAT_NODE;
+    //}
 
-    tsk_size_t num_nodes = tsk_treeseq_get_num_nodes(self->tree_sequence);
+    // tsk_size_t num_nodes = tsk_treeseq_get_num_nodes(self->tree_sequence);
     npy_intp dims[3];
     dims[0] = num_windows;
-    dims[1] = num_time_windows > 0 ? num_time_windows : num_nodes;
+    // dims[1] = nodes_output ? num_nodes : num_time_windows;
+    dims[1] = num_time_windows;
     dims[2] = num_indexes;
     result_array = (PyArrayObject *) PyArray_SimpleNew(3, dims, NPY_FLOAT64);
     if (result_array == NULL) {

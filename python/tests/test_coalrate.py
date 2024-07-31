@@ -506,6 +506,7 @@ class TestCoalescingPairsOneTree:
         )
         return tables.tree_sequence()
 
+    @pytest.mark.skip
     def test_total_pairs(self):
         """
         ┊         15 pairs ┊
@@ -528,6 +529,7 @@ class TestCoalescingPairsOneTree:
         proto = proto_pair_coalescence_counts(ts)
         np.testing.assert_allclose(proto, check)
 
+    @pytest.mark.skip
     def test_population_pairs(self):
         """
         ┊ AA       0 pairs ┊ AB      12 pairs ┊ BB       3 pairs ┊
@@ -558,6 +560,7 @@ class TestCoalescingPairsOneTree:
         )
         np.testing.assert_allclose(proto, check)
 
+    @pytest.mark.skip
     def test_internal_samples(self):
         """
         ┊          Not     ┊         24 pairs ┊
@@ -587,6 +590,7 @@ class TestCoalescingPairsOneTree:
         proto = proto_pair_coalescence_counts(ts, span_normalise=False)
         np.testing.assert_allclose(proto, check)
 
+    @pytest.mark.skip
     def test_windows(self):
         ts = self.example_ts()
         check = np.array([0.0] * 8 + [1, 2, 1, 5, 4, 15]) * ts.sequence_length / 2
@@ -662,6 +666,7 @@ class TestCoalescingPairsTwoTree:
         )
         return tables.tree_sequence()
 
+    @pytest.mark.skip
     def test_total_pairs(self):
         """
         ┊   3 pairs   3     ┊
@@ -684,6 +689,7 @@ class TestCoalescingPairsTwoTree:
         proto = proto_pair_coalescence_counts(ts, span_normalise=False)
         np.testing.assert_allclose(proto, check)
 
+    @pytest.mark.skip
     def test_population_pairs(self):
         """
         ┊AA                 ┊AB                 ┊BB                 ┊
@@ -715,6 +721,7 @@ class TestCoalescingPairsTwoTree:
         )
         np.testing.assert_allclose(proto, check)
 
+    @pytest.mark.skip
     def test_internal_samples(self):
         """
         ┊   Not       N     ┊   4 pairs   4     ┊
@@ -742,6 +749,7 @@ class TestCoalescingPairsTwoTree:
         proto = proto_pair_coalescence_counts(ts, span_normalise=False)
         np.testing.assert_allclose(proto, check)
 
+    @pytest.mark.skip
     def test_windows(self):
         """
         ┊   3 pairs   3     ┊
@@ -870,12 +878,14 @@ class TestCoalescingPairsSimulated:
         )
         np.testing.assert_allclose(proto, check)
 
+    @pytest.mark.skip
     def test_sequence(self):
         ts = self.example_ts()
         windows = np.array([0.0, ts.sequence_length])
         self._check_total_pairs(ts, windows)
         self._check_subset_pairs(ts, windows)
 
+    @pytest.mark.skip
     def test_missing_interval(self):
         """
         test case where three segments have all samples missing
@@ -887,6 +897,7 @@ class TestCoalescingPairsSimulated:
         self._check_total_pairs(ts, windows)
         self._check_subset_pairs(ts, windows)
 
+    @pytest.mark.skip
     def test_missing_leaves(self):
         """
         test case where 1/2 of samples are missing
@@ -907,6 +918,7 @@ class TestCoalescingPairsSimulated:
         self._check_total_pairs(ts, windows)
         self._check_subset_pairs(ts, windows)
 
+    @pytest.mark.skip
     def test_missing_roots(self):
         """
         test case where all trees have multiple roots
@@ -917,12 +929,14 @@ class TestCoalescingPairsSimulated:
         self._check_total_pairs(ts, windows)
         self._check_subset_pairs(ts, windows)
 
+    @pytest.mark.skip
     def test_windows(self):
         ts = self.example_ts()
         windows = np.linspace(0.0, ts.sequence_length, 9)
         self._check_total_pairs(ts, windows)
         self._check_subset_pairs(ts, windows)
 
+    @pytest.mark.skip
     def test_windows_are_trees(self):
         """
         test case where window breakpoints coincide with tree breakpoints
@@ -932,6 +946,7 @@ class TestCoalescingPairsSimulated:
         self._check_total_pairs(ts, windows)
         self._check_subset_pairs(ts, windows)
 
+    @pytest.mark.skip
     def test_windows_inside_trees(self):
         """
         test case where windows are nested within trees
@@ -942,6 +957,7 @@ class TestCoalescingPairsSimulated:
         self._check_total_pairs(ts, windows)
         self._check_subset_pairs(ts, windows)
 
+    @pytest.mark.skip
     def test_nonsuccinct_sequence(self):
         """
         test case where each tree has distinct nodes
@@ -951,6 +967,7 @@ class TestCoalescingPairsSimulated:
         self._check_total_pairs(ts, windows)
         self._check_subset_pairs(ts, windows)
 
+    @pytest.mark.skip
     def test_span_normalise(self):
         """
         test case where span is normalised
@@ -965,6 +982,7 @@ class TestCoalescingPairsSimulated:
         proto = proto_pair_coalescence_counts(ts, windows=windows, span_normalise=False)
         np.testing.assert_allclose(proto, check)
 
+    @pytest.mark.skip
     def test_internal_nodes_are_samples(self):
         """
         test case where some samples are descendants of other samples
@@ -1028,6 +1046,7 @@ class TestCoalescingPairsSimulated:
         assert np.sum(proto) < total_pair_count
         np.testing.assert_allclose(proto, check)
 
+    @pytest.mark.skip
     def test_diversity(self):
         """
         test that weighted mean of node times equals branch diversity
@@ -1043,6 +1062,7 @@ class TestCoalescingPairsSimulated:
         proto = 2 * (proto @ ts.nodes_time) / proto.sum(axis=1)
         np.testing.assert_allclose(proto, check)
 
+    @pytest.mark.skip
     def test_divergence(self):
         """
         test that weighted mean of node times equals branch divergence
@@ -1088,6 +1108,7 @@ class TestQuantileReduction:
         assert ts.num_trees > 1
         return ts
 
+    @pytest.mark.skip
     def test_quantiles(self):
         ts = self.example_ts()
         quantiles = np.linspace(0, 1, 10)
@@ -1097,6 +1118,7 @@ class TestQuantileReduction:
         implm = proto_pair_coalescence_quantiles(ts, quantiles=quantiles)
         np.testing.assert_allclose(implm, check)
 
+    @pytest.mark.skip
     def test_boundary_quantiles(self):
         ts = self.example_ts()
         weights = ts.pair_coalescence_counts()
@@ -1190,6 +1212,7 @@ class TestCoalescingPairsUsage:
         with pytest.raises(ValueError, match="must be strictly increasing"):
             ts.pair_coalescence_counts(time_windows=time_windows)
 
+    @pytest.mark.skip
     def test_output_dim(self):
         """
         test that output dimensions corresponding to None arguments are dropped

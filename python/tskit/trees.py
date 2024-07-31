@@ -9379,7 +9379,8 @@ class TreeSequence:
             raise ValueError("Window breaks must be strictly increasing")
 
         if isinstance(time_windows, str) and time_windows == "nodes":
-            time_windows = np.array([])
+            time_windows = np.array([0, np.inf])
+            # nodes_output = True
         else:
             if not (isinstance(time_windows, np.ndarray) and time_windows.size > 1):
                 raise ValueError("Time windows must be an array of breakpoints")
@@ -9387,6 +9388,7 @@ class TreeSequence:
                 raise ValueError("Time windows must be strictly increasing")
             if self.time_units == tskit.TIME_UNITS_UNCALIBRATED:
                 raise ValueError("Time windows require calibrated node times")
+            # nodes_output = False
 
         sample_set_sizes = np.array([len(s) for s in sample_sets], dtype=np.uint32)
         sample_sets = util.safe_np_int_cast(np.hstack(sample_sets), np.int32)
@@ -9398,6 +9400,7 @@ class TreeSequence:
             indexes=indexes,
             time_windows=time_windows,
             span_normalise=span_normalise,
+            # nodes_output=nodes_output,
         )
 
         if drop_right_dimension:
