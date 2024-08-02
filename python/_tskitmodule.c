@@ -9986,9 +9986,9 @@ TreeSequence_pair_coalescence_counts(TreeSequence *self, PyObject *args, PyObjec
     }
 
     npy_intp dims[3];
-    dims[0] = num_windows;
-    dims[1] = num_outputs;
-    dims[2] = num_indexes;
+    dims[0] = (npy_intp) num_windows;
+    dims[1] = (npy_intp) num_outputs;
+    dims[2] = (npy_intp) num_indexes;
     result_array = (PyArrayObject *) PyArray_SimpleNew(3, dims, NPY_FLOAT64);
     if (result_array == NULL) {
         goto out;

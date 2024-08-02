@@ -1093,48 +1093,48 @@ class TestCoalescingPairsSimulated:
         np.testing.assert_allclose(proto, check)
 
 
-# class TestQuantileReduction:
-#     """
-#     Test quantile reduction
-#     """
-#
-#     @tests.cached_example
-#     def example_ts(self):
-#         n = 10
-#         model = msprime.BetaCoalescent(alpha=1.5)  # polytomies
-#         tables = msprime.sim_ancestry(
-#             samples=n,
-#             recombination_rate=1e-8,
-#             sequence_length=1e6,
-#             population_size=1e4,
-#             random_seed=1024,
-#             model=model,
-#         ).dump_tables()
-#         tables.populations.add_row(metadata={"name": "foo", "description": "bar"})
-#         tables.nodes.population = np.repeat(
-#             [0, 1, tskit.NULL], [n, n, tables.nodes.num_rows - 2 * n]
-#         ).astype("int32")
-#         ts = tables.tree_sequence()
-#         assert ts.num_trees > 1
-#         return ts
-#
-#     def test_quantiles(self):
-#         ts = self.example_ts()
-#         quantiles = np.linspace(0, 1, 10)
-#         weights = ts.pair_coalescence_counts()
-#         check = _numpy_weighted_quantile(ts.nodes_time, weights, quantiles)
-#         # TODO: switch to TreeSequence method
-#         implm = proto_pair_coalescence_quantiles(ts, quantiles=quantiles)
-#         np.testing.assert_allclose(implm, check)
-#
-#     def test_boundary_quantiles(self):
-#         ts = self.example_ts()
-#         weights = ts.pair_coalescence_counts()
-#         quantiles = np.unique(weights / np.sum(weights))
-#         check = _numpy_weighted_quantile(ts.nodes_time, weights, quantiles)
-#         # TODO: switch to TreeSequence method
-#         implm = proto_pair_coalescence_quantiles(ts, quantiles=quantiles)
-#         np.testing.assert_allclose(implm, check)
+class TestQuantileReduction:
+    """
+    Test quantile reduction
+    """
+
+    @tests.cached_example
+    def example_ts(self):
+        n = 10
+        model = msprime.BetaCoalescent(alpha=1.5)  # polytomies
+        tables = msprime.sim_ancestry(
+            samples=n,
+            recombination_rate=1e-8,
+            sequence_length=1e6,
+            population_size=1e4,
+            random_seed=1024,
+            model=model,
+        ).dump_tables()
+        tables.populations.add_row(metadata={"name": "foo", "description": "bar"})
+        tables.nodes.population = np.repeat(
+            [0, 1, tskit.NULL], [n, n, tables.nodes.num_rows - 2 * n]
+        ).astype("int32")
+        ts = tables.tree_sequence()
+        assert ts.num_trees > 1
+        return ts
+
+    def test_quantiles(self):
+        ts = self.example_ts()
+        quantiles = np.linspace(0, 1, 10)
+        weights = ts.pair_coalescence_counts()
+        check = _numpy_weighted_quantile(ts.nodes_time, weights, quantiles)
+        # TODO: switch to TreeSequence method
+        implm = proto_pair_coalescence_quantiles(ts, quantiles=quantiles)
+        np.testing.assert_allclose(implm, check)
+
+    def test_boundary_quantiles(self):
+        ts = self.example_ts()
+        weights = ts.pair_coalescence_counts()
+        quantiles = np.unique(weights / np.sum(weights))
+        check = _numpy_weighted_quantile(ts.nodes_time, weights, quantiles)
+        # TODO: switch to TreeSequence method
+        implm = proto_pair_coalescence_quantiles(ts, quantiles=quantiles)
+        np.testing.assert_allclose(implm, check)
 
 
 # TODO: test prototype
