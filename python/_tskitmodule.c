@@ -9994,11 +9994,11 @@ TreeSequence_pair_coalescence_counts(TreeSequence *self, PyObject *args, PyObjec
         goto out;
     }
 
-    // err = tsk_treeseq_pair_coalescence_stat(self->tree_sequence, num_sample_sets,
-    //    PyArray_DATA(sample_set_sizes_array), PyArray_DATA(sample_sets_array),
-    //    num_indexes, PyArray_DATA(indexes_array), num_windows,
-    //    PyArray_DATA(windows_array), PyArray_DATA(node_output_map_array), options,
-    //    PyArray_DATA(result_array));
+    err = tsk_treeseq_pair_coalescence_stat(self->tree_sequence, num_sample_sets,
+        PyArray_DATA(sample_set_sizes_array), PyArray_DATA(sample_sets_array),
+        num_indexes, PyArray_DATA(indexes_array), num_windows,
+        PyArray_DATA(windows_array), PyArray_DATA(node_output_map_array), options,
+        PyArray_DATA(result_array));
     err = 0;
     if (err != 0) {
         handle_library_error(err);
