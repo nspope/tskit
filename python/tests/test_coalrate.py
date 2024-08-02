@@ -1153,7 +1153,6 @@ class TestCoalescingPairsUsage:
             random_seed=1024,
         )
 
-    @pytest.mark.skip("potential bug")
     def test_oor_windows(self):
         ts = self.example_ts()
         with pytest.raises(ValueError, match="must be sequence boundary"):
@@ -1228,7 +1227,6 @@ class TestCoalescingPairsUsage:
         with pytest.raises(ValueError, match="has null values for all nodes"):
             ts.pair_coalescence_counts(time_windows=time_windows)
 
-    @pytest.mark.skip("potential bug")
     def test_output_dim(self):
         """
         test that output dimensions corresponding to None arguments are dropped
