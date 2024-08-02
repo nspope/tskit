@@ -8207,6 +8207,7 @@ tsk_treeseq_pair_coalescence_stat(const tsk_treeseq_t *self, tsk_size_t num_samp
     /* used as row pointers */
     double *inside = NULL;
     double *weight = NULL;
+    double *output = NULL;
     double *above = NULL;
     double *below = NULL;
     double *state = NULL;
@@ -8419,8 +8420,14 @@ tsk_treeseq_pair_coalescence_stat(const tsk_treeseq_t *self, tsk_size_t num_samp
             // for (i = 0; i < (tsk_id_t) num_set_indexes; i++) {
             //     reduce(i, col, nodes_weight, &result[w * row_dim * col_dim])
             // };
-            tsk_memcpy(&result[((tsk_size_t) w) * num_outputs * num_set_indexes],
-                nodes_weight, num_outputs * num_set_indexes * sizeof(*result));
+            for (v = 0; v < (tsk_id_t) num_outputs; v++) {
+                output = GET_3D_ROW(
+                    result, num_outputs, num_set_indexes, (tsk_size_t) w, v);
+                weight = GET_2D_ROW(nodes_weight, num_set_indexes, v);
+                for (i = 0; i < (tsk_id_t) num_set_indexes; i++) {
+                    output[i] = weight[i];
+                }
+            }
             w += 1;
         }
     }
