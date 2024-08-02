@@ -9865,7 +9865,7 @@ parse_node_output_map(PyObject *node_output_map, PyArrayObject **ret_array,
     tsk_size_t *ret_num_outputs, tsk_size_t num_nodes)
 {
     int ret = -1;
-    tsk_size_t num_outputs = 0;
+    npy_int32 num_outputs = 0;
     PyArrayObject *node_output_map_array = NULL;
     npy_intp *shape;
     npy_int32 *data;
@@ -9895,10 +9895,10 @@ parse_node_output_map(PyObject *node_output_map, PyArrayObject **ret_array,
             PyExc_ValueError, "Node output map has null values for all nodes");
         goto out;
     }
-    num_outputs = 1 + (tsk_size_t) max_index;
+    num_outputs = 1 + max_index;
     ret = 0;
 out:
-    *ret_num_outputs = num_outputs;
+    *ret_num_outputs = (tsk_size_t) num_outputs;
     *ret_array = node_output_map_array;
     return ret;
 }
