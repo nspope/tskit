@@ -9380,6 +9380,7 @@ class TreeSequence:
 
         if isinstance(time_windows, str) and time_windows == "nodes":
             time_windows = np.array([0, np.inf])
+            raise NotImplementedError("Output per individual node is not implemented")
             # nodes_output = True
         else:
             if not (isinstance(time_windows, np.ndarray) and time_windows.size > 1):
