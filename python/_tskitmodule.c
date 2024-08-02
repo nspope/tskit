@@ -9987,19 +9987,17 @@ TreeSequence_pair_coalescence_counts(TreeSequence *self, PyObject *args, PyObjec
 
     npy_intp dims[3];
     dims[0] = (npy_intp) num_windows;
-    dims[1] = (npy_intp) num_outputs;
+    dims[1] = (npy_intp) tsk_treeseq_get_num_nodes(self->tree_sequence);
     dims[2] = (npy_intp) num_indexes;
     result_array = (PyArrayObject *) PyArray_SimpleNew(3, dims, NPY_FLOAT64);
     if (result_array == NULL) {
         goto out;
     }
 
-    // DEBUG
     err = tsk_treeseq_pair_coalescence_stat(self->tree_sequence, num_sample_sets,
         PyArray_DATA(sample_set_sizes_array), PyArray_DATA(sample_sets_array),
         num_indexes, PyArray_DATA(indexes_array), num_windows,
-        PyArray_DATA(windows_array), PyArray_DATA(node_output_map_array), options,
-        PyArray_DATA(result_array));
+        PyArray_DATA(windows_array), options, PyArray_DATA(result_array));
     if (err != 0) {
         handle_library_error(err);
         goto out;

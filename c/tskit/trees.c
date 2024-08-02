@@ -8150,42 +8150,11 @@ out:
  * Pair coalescence
  * ======================================================== */
 
-static int
-get_node_output_map_dimension(
-    const tsk_treeseq_t *self, const tsk_id_t *node_output_map, tsk_size_t *result)
-{
-    int ret = 0;
-    const tsk_table_collection_t *tables = self->tables;
-    const tsk_size_t num_nodes = tables->nodes.num_rows;
-    tsk_id_t max_index, index;
-    tsk_size_t i;
-
-    max_index = TSK_NULL;
-    for (i = 0; i < num_nodes; i++) {
-        index = node_output_map[i];
-        if (index < TSK_NULL) {
-            ret = TSK_ERR_BAD_NODE_OUTPUT_MAP;
-            goto out;
-        }
-        if (index > max_index) {
-            max_index = index;
-        }
-    }
-    if (max_index == TSK_NULL) {
-        ret = TSK_ERR_EMPTY_NODE_OUTPUT_MAP;
-        goto out;
-    }
-    *result = 1 + (tsk_size_t) max_index;
-out:
-    return ret;
-}
-
 int
 tsk_treeseq_pair_coalescence_stat(const tsk_treeseq_t *self, tsk_size_t num_sample_sets,
     const tsk_size_t *sample_set_sizes, const tsk_id_t *sample_sets,
     tsk_size_t num_set_indexes, const tsk_id_t *set_indexes, tsk_size_t num_windows,
-    const double *windows, const tsk_id_t *node_output_map, tsk_flags_t options,
-    double *result)
+    const double *windows, tsk_flags_t options, double *result)
 {
     int ret = 0;
     double left, right, remaining_span, window_span;
@@ -8243,10 +8212,7 @@ tsk_treeseq_pair_coalescence_stat(const tsk_treeseq_t *self, tsk_size_t num_samp
     if (ret != 0) {
         goto out;
     }
-    ret = get_node_output_map_dimension(self, node_output_map, &num_outputs);
-    if (ret != 0) {
-        goto out;
-    }
+    num_outputs = num_nodes;
 
     /* initialize internal state */
     nodes_parent = tsk_malloc(num_nodes * sizeof(*nodes_parent));
@@ -8296,7 +8262,7 @@ tsk_treeseq_pair_coalescence_stat(const tsk_treeseq_t *self, tsk_size_t num_samp
             nodes_parent[c] = TSK_NULL;
             inside = GET_2D_ROW(sample_count, num_sample_sets, c);
             while (p != TSK_NULL) {
-                v = node_output_map[p];
+                v = p;
                 if (v != TSK_NULL) {
                     above = GET_2D_ROW(sample_count, num_sample_sets, p);
                     below = GET_2D_ROW(sample_count, num_sample_sets, c);
@@ -8343,7 +8309,7 @@ tsk_treeseq_pair_coalescence_stat(const tsk_treeseq_t *self, tsk_size_t num_samp
             }
             p = tables->edges.parent[e];
             while (p != TSK_NULL) {
-                v = node_output_map[p];
+                v = p;
                 if (v != TSK_NULL) {
                     above = GET_2D_ROW(sample_count, num_sample_sets, p);
                     below = GET_2D_ROW(sample_count, num_sample_sets, c);
@@ -8383,7 +8349,7 @@ tsk_treeseq_pair_coalescence_stat(const tsk_treeseq_t *self, tsk_size_t num_samp
                 if (p == TSK_NULL) {
                     continue;
                 }
-                v = node_output_map[p];
+                v = p;
                 if (v == TSK_NULL) {
                     continue;
                 }
