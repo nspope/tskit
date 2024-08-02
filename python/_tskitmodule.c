@@ -9999,7 +9999,6 @@ TreeSequence_pair_coalescence_counts(TreeSequence *self, PyObject *args, PyObjec
         num_indexes, PyArray_DATA(indexes_array), num_windows,
         PyArray_DATA(windows_array), PyArray_DATA(node_output_map_array), options,
         PyArray_DATA(result_array));
-    err = 0;
     if (err != 0) {
         handle_library_error(err);
         goto out;
