@@ -9994,6 +9994,7 @@ TreeSequence_pair_coalescence_counts(TreeSequence *self, PyObject *args, PyObjec
         goto out;
     }
 
+    // DEBUG
     err = tsk_treeseq_pair_coalescence_stat(self->tree_sequence, num_sample_sets,
         PyArray_DATA(sample_set_sizes_array), PyArray_DATA(sample_sets_array),
         num_indexes, PyArray_DATA(indexes_array), num_windows,
