@@ -9860,10 +9860,6 @@ out:
     return ret;
 }
 
-/* TODO:
- * in the default case (no time windows) we calculate statistics at the level of nodes.
- * this is triggered by a zero-length time windows array, rather than None, to avoid
- * juggling NULL pointers. Is there a better way to go about this? */
 static int
 parse_time_windows(
     PyObject *time_windows, PyArrayObject **ret_array, tsk_size_t *ret_num_time_windows)

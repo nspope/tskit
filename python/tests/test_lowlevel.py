@@ -4305,10 +4305,11 @@ class TestPairCoalescenceErrors:
         with pytest.raises(ValueError, match="at least 2"):
             self.pair_coalescence_counts(ts, windows=[0.0])
 
-    def test_cpy_bad_indexes(self):
+    @pytest.mark.parametrize("indexes", [[(0, 0, 0)], np.zeros((0, 2), dtype=np.int32)])
+    def test_cpy_bad_indexes(self, indexes):
         ts = self.example_ts()
         with pytest.raises(ValueError, match="k x 2 array"):
-            self.pair_coalescence_counts(ts, indexes=[(0, 0, 0)])
+            self.pair_coalescence_counts(ts, indexes=indexes)
 
     def test_cpy_bad_time_windows(self):
         ts = self.example_ts()
