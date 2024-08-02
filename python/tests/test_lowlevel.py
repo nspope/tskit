@@ -4224,10 +4224,11 @@ class TestPairCoalescenceErrors:
         sample_set_sizes=None,
         indexes=None,
         windows=None,
-        time_windows=None,
+        node_output_map=None,
         span_normalise=False,
     ):
         n = ts.get_num_samples()
+        N = ts.get_num_nodes()
         if sample_sets is None:
             sample_sets = np.arange(n, dtype=np.int32)
         if sample_set_sizes is None:
@@ -4239,23 +4240,24 @@ class TestPairCoalescenceErrors:
             indexes = [(i, j) for i, j in pairs]
         if windows is None:
             windows = np.array([0, 0.5, 1.0]) * ts.get_sequence_length()
-        if time_windows is None:
-            time_windows = np.array([0, 0.5, 1.0]) * ts.get_max_time()
+        if node_output_map is None:
+            node_output_map = np.arange(N, dtype=np.int32)
         return ts.pair_coalescence_counts(
             sample_sets=sample_sets,
             sample_set_sizes=sample_set_sizes,
             windows=windows,
             indexes=indexes,
-            time_windows=time_windows,
+            node_output_map=node_output_map,
             span_normalise=span_normalise,
         )
 
     def test_output_dims(self):
         ts = self.example_ts()
         coal = self.pair_coalescence_counts(ts)
-        assert coal.shape == (2, 2, 3)
+        dim = (2, ts.get_num_nodes(), 3)
+        assert coal.shape == dim
         coal = self.pair_coalescence_counts(ts, span_normalise=True)
-        assert coal.shape == (2, 2, 3)
+        assert coal.shape == dim
 
     @pytest.mark.parametrize("bad_node", [-1, -2, 1000])
     def test_c_tsk_err_node_out_of_bounds(self, bad_node):
@@ -4272,11 +4274,12 @@ class TestPairCoalescenceErrors:
         with pytest.raises(_tskit.LibraryError, match="BAD_WINDOWS"):
             self.pair_coalescence_counts(ts, windows=[-1.0, L])
 
-    def test_c_tsk_err_bad_time_windows(self):
+    def test_c_tsk_err_bad_node_output_map(self):
         ts = self.example_ts()
-        time_windows = [0.0, np.inf, 0.0]
-        with pytest.raises(_tskit.LibraryError, match="BAD_TIME_WINDOWS"):
-            self.pair_coalescence_counts(ts, time_windows=time_windows)
+        node_output_map = np.arange(ts.get_num_nodes(), dtype=np.int32)
+        node_output_map[0] = -10
+        with pytest.raises(_tskit.LibraryError, match="BAD_NODE_OUTPUT_MAP"):
+            self.pair_coalescence_counts(ts, node_output_map=node_output_map)
 
     @pytest.mark.parametrize("bad_index", [-1, 10])
     def test_c_tsk_err_bad_sample_set_index(self, bad_index):
@@ -4311,7 +4314,11 @@ class TestPairCoalescenceErrors:
         with pytest.raises(ValueError, match="k x 2 array"):
             self.pair_coalescence_counts(ts, indexes=indexes)
 
-    def test_cpy_bad_time_windows(self):
+    def test_cpy_bad_node_output_map(self):
         ts = self.example_ts()
-        with pytest.raises(ValueError, match="at least 2"):
-            self.pair_coalescence_counts(ts, time_windows=[0.0])
+        num_nodes = ts.get_num_nodes()
+        node_output_map = np.full(num_nodes, tskit.NULL, dtype=np.int32)
+        with pytest.raises(ValueError, match="null values for all nodes"):
+            self.pair_coalescence_counts(ts, node_output_map=node_output_map)
+        with pytest.raises(ValueError, match="a value per node"):
+            self.pair_coalescence_counts(ts, node_output_map=node_output_map[:-1])

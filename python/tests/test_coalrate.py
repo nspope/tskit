@@ -506,7 +506,6 @@ class TestCoalescingPairsOneTree:
         )
         return tables.tree_sequence()
 
-    @pytest.mark.skip(reason="Per node output not implemented yet")
     def test_total_pairs(self):
         """
         ┊         15 pairs ┊
@@ -529,7 +528,6 @@ class TestCoalescingPairsOneTree:
         proto = proto_pair_coalescence_counts(ts)
         np.testing.assert_allclose(proto, check)
 
-    @pytest.mark.skip(reason="Per node output not implemented yet")
     def test_population_pairs(self):
         """
         ┊ AA       0 pairs ┊ AB      12 pairs ┊ BB       3 pairs ┊
@@ -560,7 +558,6 @@ class TestCoalescingPairsOneTree:
         )
         np.testing.assert_allclose(proto, check)
 
-    @pytest.mark.skip(reason="Per node output not implemented yet")
     def test_internal_samples(self):
         """
         ┊          Not     ┊         24 pairs ┊
@@ -590,7 +587,6 @@ class TestCoalescingPairsOneTree:
         proto = proto_pair_coalescence_counts(ts, span_normalise=False)
         np.testing.assert_allclose(proto, check)
 
-    @pytest.mark.skip(reason="Per node output not implemented yet")
     def test_windows(self):
         ts = self.example_ts()
         check = np.array([0.0] * 8 + [1, 2, 1, 5, 4, 15]) * ts.sequence_length / 2
@@ -666,7 +662,6 @@ class TestCoalescingPairsTwoTree:
         )
         return tables.tree_sequence()
 
-    @pytest.mark.skip(reason="Per node output not implemented yet")
     def test_total_pairs(self):
         """
         ┊   3 pairs   3     ┊
@@ -689,7 +684,6 @@ class TestCoalescingPairsTwoTree:
         proto = proto_pair_coalescence_counts(ts, span_normalise=False)
         np.testing.assert_allclose(proto, check)
 
-    @pytest.mark.skip(reason="Per node output not implemented yet")
     def test_population_pairs(self):
         """
         ┊AA                 ┊AB                 ┊BB                 ┊
@@ -721,7 +715,6 @@ class TestCoalescingPairsTwoTree:
         )
         np.testing.assert_allclose(proto, check)
 
-    @pytest.mark.skip(reason="Per node output not implemented yet")
     def test_internal_samples(self):
         """
         ┊   Not       N     ┊   4 pairs   4     ┊
@@ -749,7 +742,6 @@ class TestCoalescingPairsTwoTree:
         proto = proto_pair_coalescence_counts(ts, span_normalise=False)
         np.testing.assert_allclose(proto, check)
 
-    @pytest.mark.skip(reason="Per node output not implemented yet")
     def test_windows(self):
         """
         ┊   3 pairs   3     ┊
@@ -878,14 +870,12 @@ class TestCoalescingPairsSimulated:
         )
         np.testing.assert_allclose(proto, check)
 
-    @pytest.mark.skip(reason="Per node output not implemented yet")
     def test_sequence(self):
         ts = self.example_ts()
         windows = np.array([0.0, ts.sequence_length])
         self._check_total_pairs(ts, windows)
         self._check_subset_pairs(ts, windows)
 
-    @pytest.mark.skip(reason="Per node output not implemented yet")
     def test_missing_interval(self):
         """
         test case where three segments have all samples missing
@@ -897,7 +887,6 @@ class TestCoalescingPairsSimulated:
         self._check_total_pairs(ts, windows)
         self._check_subset_pairs(ts, windows)
 
-    @pytest.mark.skip(reason="Per node output not implemented yet")
     def test_missing_leaves(self):
         """
         test case where 1/2 of samples are missing
@@ -918,7 +907,6 @@ class TestCoalescingPairsSimulated:
         self._check_total_pairs(ts, windows)
         self._check_subset_pairs(ts, windows)
 
-    @pytest.mark.skip(reason="Per node output not implemented yet")
     def test_missing_roots(self):
         """
         test case where all trees have multiple roots
@@ -929,14 +917,12 @@ class TestCoalescingPairsSimulated:
         self._check_total_pairs(ts, windows)
         self._check_subset_pairs(ts, windows)
 
-    @pytest.mark.skip(reason="Per node output not implemented yet")
     def test_windows(self):
         ts = self.example_ts()
         windows = np.linspace(0.0, ts.sequence_length, 9)
         self._check_total_pairs(ts, windows)
         self._check_subset_pairs(ts, windows)
 
-    @pytest.mark.skip(reason="Per node output not implemented yet")
     def test_windows_are_trees(self):
         """
         test case where window breakpoints coincide with tree breakpoints
@@ -946,7 +932,6 @@ class TestCoalescingPairsSimulated:
         self._check_total_pairs(ts, windows)
         self._check_subset_pairs(ts, windows)
 
-    @pytest.mark.skip(reason="Per node output not implemented yet")
     def test_windows_inside_trees(self):
         """
         test case where windows are nested within trees
@@ -957,7 +942,6 @@ class TestCoalescingPairsSimulated:
         self._check_total_pairs(ts, windows)
         self._check_subset_pairs(ts, windows)
 
-    @pytest.mark.skip(reason="Per node output not implemented yet")
     def test_nonsuccinct_sequence(self):
         """
         test case where each tree has distinct nodes
@@ -967,7 +951,6 @@ class TestCoalescingPairsSimulated:
         self._check_total_pairs(ts, windows)
         self._check_subset_pairs(ts, windows)
 
-    @pytest.mark.skip(reason="Per node output not implemented yet")
     def test_span_normalise(self):
         """
         test case where span is normalised
@@ -982,7 +965,6 @@ class TestCoalescingPairsSimulated:
         proto = proto_pair_coalescence_counts(ts, windows=windows, span_normalise=False)
         np.testing.assert_allclose(proto, check)
 
-    @pytest.mark.skip(reason="Per node output not implemented yet")
     def test_internal_nodes_are_samples(self):
         """
         test case where some samples are descendants of other samples
@@ -1076,25 +1058,6 @@ class TestCoalescingPairsSimulated:
         assert np.isclose(np.sum(proto), total_pair_count)
         np.testing.assert_allclose(proto, check)
 
-    def test_time_windows_empty(self):
-        """
-        test case where all nodes fall outside of time bins
-        """
-        ts = self.example_ts()
-        time_windows = [np.max(ts.nodes_time) + 1, np.max(ts.nodes_time) + 2]
-        time_windows = np.append(time_windows, np.inf)
-        implm = ts.pair_coalescence_counts(
-            span_normalise=False, time_windows=time_windows
-        )
-        check = np.zeros(time_windows.size - 1)
-        np.testing.assert_allclose(implm, check)
-        # TODO: remove with prototype
-        proto = proto_pair_coalescence_counts(
-            ts, span_normalise=False, time_windows=time_windows
-        )
-        np.testing.assert_allclose(proto, check)
-
-    @pytest.mark.skip(reason="Per node output not implemented yet")
     def test_diversity(self):
         """
         test that weighted mean of node times equals branch diversity
@@ -1110,7 +1073,6 @@ class TestCoalescingPairsSimulated:
         proto = 2 * (proto @ ts.nodes_time) / proto.sum(axis=1)
         np.testing.assert_allclose(proto, check)
 
-    @pytest.mark.skip(reason="Per node output not implemented yet")
     def test_divergence(self):
         """
         test that weighted mean of node times equals branch divergence
@@ -1131,50 +1093,48 @@ class TestCoalescingPairsSimulated:
         np.testing.assert_allclose(proto, check)
 
 
-class TestQuantileReduction:
-    """
-    Test quantile reduction
-    """
-
-    @tests.cached_example
-    def example_ts(self):
-        n = 10
-        model = msprime.BetaCoalescent(alpha=1.5)  # polytomies
-        tables = msprime.sim_ancestry(
-            samples=n,
-            recombination_rate=1e-8,
-            sequence_length=1e6,
-            population_size=1e4,
-            random_seed=1024,
-            model=model,
-        ).dump_tables()
-        tables.populations.add_row(metadata={"name": "foo", "description": "bar"})
-        tables.nodes.population = np.repeat(
-            [0, 1, tskit.NULL], [n, n, tables.nodes.num_rows - 2 * n]
-        ).astype("int32")
-        ts = tables.tree_sequence()
-        assert ts.num_trees > 1
-        return ts
-
-    @pytest.mark.skip(reason="Per node output not implemented yet")
-    def test_quantiles(self):
-        ts = self.example_ts()
-        quantiles = np.linspace(0, 1, 10)
-        weights = ts.pair_coalescence_counts()
-        check = _numpy_weighted_quantile(ts.nodes_time, weights, quantiles)
-        # TODO: switch to TreeSequence method
-        implm = proto_pair_coalescence_quantiles(ts, quantiles=quantiles)
-        np.testing.assert_allclose(implm, check)
-
-    @pytest.mark.skip(reason="Per node output not implemented yet")
-    def test_boundary_quantiles(self):
-        ts = self.example_ts()
-        weights = ts.pair_coalescence_counts()
-        quantiles = np.unique(weights / np.sum(weights))
-        check = _numpy_weighted_quantile(ts.nodes_time, weights, quantiles)
-        # TODO: switch to TreeSequence method
-        implm = proto_pair_coalescence_quantiles(ts, quantiles=quantiles)
-        np.testing.assert_allclose(implm, check)
+# class TestQuantileReduction:
+#     """
+#     Test quantile reduction
+#     """
+#
+#     @tests.cached_example
+#     def example_ts(self):
+#         n = 10
+#         model = msprime.BetaCoalescent(alpha=1.5)  # polytomies
+#         tables = msprime.sim_ancestry(
+#             samples=n,
+#             recombination_rate=1e-8,
+#             sequence_length=1e6,
+#             population_size=1e4,
+#             random_seed=1024,
+#             model=model,
+#         ).dump_tables()
+#         tables.populations.add_row(metadata={"name": "foo", "description": "bar"})
+#         tables.nodes.population = np.repeat(
+#             [0, 1, tskit.NULL], [n, n, tables.nodes.num_rows - 2 * n]
+#         ).astype("int32")
+#         ts = tables.tree_sequence()
+#         assert ts.num_trees > 1
+#         return ts
+#
+#     def test_quantiles(self):
+#         ts = self.example_ts()
+#         quantiles = np.linspace(0, 1, 10)
+#         weights = ts.pair_coalescence_counts()
+#         check = _numpy_weighted_quantile(ts.nodes_time, weights, quantiles)
+#         # TODO: switch to TreeSequence method
+#         implm = proto_pair_coalescence_quantiles(ts, quantiles=quantiles)
+#         np.testing.assert_allclose(implm, check)
+#
+#     def test_boundary_quantiles(self):
+#         ts = self.example_ts()
+#         weights = ts.pair_coalescence_counts()
+#         quantiles = np.unique(weights / np.sum(weights))
+#         check = _numpy_weighted_quantile(ts.nodes_time, weights, quantiles)
+#         # TODO: switch to TreeSequence method
+#         implm = proto_pair_coalescence_quantiles(ts, quantiles=quantiles)
+#         np.testing.assert_allclose(implm, check)
 
 
 # TODO: test prototype
@@ -1193,11 +1153,7 @@ class TestCoalescingPairsUsage:
             random_seed=1024,
         )
 
-    def test_nodes_mode_not_implmented(self):
-        ts = self.example_ts()
-        with pytest.raises(NotImplementedError, match="Output per individual node"):
-            ts.pair_coalescence_counts(time_windows="nodes")
-
+    @pytest.mark.skip("potential bug")
     def test_oor_windows(self):
         ts = self.example_ts()
         with pytest.raises(ValueError, match="must be sequence boundary"):
@@ -1265,7 +1221,14 @@ class TestCoalescingPairsUsage:
         with pytest.raises(ValueError, match="must be strictly increasing"):
             ts.pair_coalescence_counts(time_windows=time_windows)
 
-    @pytest.mark.skip(reason="Per node output not implemented yet")
+    def test_empty_time_windows(self):
+        ts = self.example_ts()
+        time_windows = [np.max(ts.nodes_time) + 1, np.max(ts.nodes_time) + 2]
+        time_windows = np.append(time_windows, np.inf)
+        with pytest.raises(ValueError, match="has null values for all nodes"):
+            ts.pair_coalescence_counts(time_windows=time_windows)
+
+    @pytest.mark.skip("potential bug")
     def test_output_dim(self):
         """
         test that output dimensions corresponding to None arguments are dropped

@@ -695,14 +695,13 @@ Insufficient weights were provided.
 */
 #define TSK_ERR_INSUFFICIENT_WEIGHTS                                -913
 /**
-A single time break was specified, no or multiple time breaks must be
-specified
+The node output map contains a value less than TSK_NULL
 */
-#define TSK_ERR_BAD_NUM_TIME_WINDOWS                                -914
+#define TSK_ERR_BAD_NODE_OUTPUT_MAP                                 -914
 /**
-The time window specification was not an increasing list of breakpoints
+The node output map contains only TSK_NULL
 */
-#define TSK_ERR_BAD_TIME_WINDOWS                                    -915
+#define TSK_ERR_EMPTY_NODE_OUTPUT_MAP                               -915
 /** @} */
 
 /**

@@ -9861,30 +9861,45 @@ out:
 }
 
 static int
-parse_time_windows(
-    PyObject *time_windows, PyArrayObject **ret_array, tsk_size_t *ret_num_time_windows)
+parse_node_output_map(PyObject *node_output_map, PyArrayObject **ret_array,
+    tsk_size_t *ret_num_outputs, tsk_size_t num_nodes)
 {
     int ret = -1;
-    tsk_size_t num_time_windows = 0;
-    PyArrayObject *time_windows_array = NULL;
+    tsk_size_t num_outputs = 0;
+    PyArrayObject *node_output_map_array = NULL;
     npy_intp *shape;
+    npy_int32 *data;
+    npy_int32 max_index;
+    tsk_size_t i;
 
-    time_windows_array = (PyArrayObject *) PyArray_FROMANY(
-        time_windows, NPY_FLOAT64, 1, 1, NPY_ARRAY_IN_ARRAY);
-    if (time_windows_array == NULL) {
+    node_output_map_array = (PyArrayObject *) PyArray_FROMANY(
+        node_output_map, NPY_INT32, 1, 1, NPY_ARRAY_IN_ARRAY);
+    if (node_output_map_array == NULL) {
         goto out;
     }
-    shape = PyArray_DIMS(time_windows_array);
-    if (shape[0] < 2) { /* allow zero length array */
+    shape = PyArray_DIMS(node_output_map_array);
+    if ((tsk_size_t) shape[0] != num_nodes) {
+        PyErr_SetString(PyExc_ValueError, "Node output map must have a value per node");
+        goto out;
+    }
+
+    max_index = TSK_NULL;
+    data = PyArray_DATA(node_output_map_array);
+    for (i = 0; i < num_nodes; i++) {
+        if (data[i] > max_index) {
+            max_index = data[i];
+        }
+    }
+    if (max_index == TSK_NULL) {
         PyErr_SetString(
-            PyExc_ValueError, "Time windows array must have at least 2 elements");
+            PyExc_ValueError, "Node output map has null values for all nodes");
         goto out;
     }
-    num_time_windows = shape[0] - 1;
+    num_outputs = 1 + (tsk_size_t) max_index;
     ret = 0;
 out:
-    *ret_num_time_windows = num_time_windows;
-    *ret_array = time_windows_array;
+    *ret_num_outputs = num_outputs;
+    *ret_array = node_output_map_array;
     return ret;
 }
 
@@ -9921,18 +9936,16 @@ TreeSequence_pair_coalescence_counts(TreeSequence *self, PyObject *args, PyObjec
 {
     PyObject *ret = NULL;
 
-    // static char *kwlist[] = { "windows", "sample_set_sizes", "sample_sets", "indexes",
-    //    "time_windows", "span_normalise", "nodes_output", NULL };
     static char *kwlist[] = { "windows", "sample_set_sizes", "sample_sets", "indexes",
-        "time_windows", "span_normalise", NULL };
+        "node_output_map", "span_normalise", NULL };
     PyObject *py_sample_set_sizes = Py_None;
     PyObject *py_sample_sets = Py_None;
     PyObject *py_windows = Py_None;
-    PyObject *py_time_windows = Py_None;
+    PyObject *py_node_output_map = Py_None;
     PyObject *py_indexes = Py_None;
     PyArrayObject *result_array = NULL;
     PyArrayObject *windows_array = NULL;
-    PyArrayObject *time_windows_array = NULL;
+    PyArrayObject *node_output_map_array = NULL;
     PyArrayObject *indexes_array = NULL;
     PyArrayObject *sample_set_sizes_array = NULL;
     PyArrayObject *sample_sets_array = NULL;
@@ -9940,16 +9953,15 @@ TreeSequence_pair_coalescence_counts(TreeSequence *self, PyObject *args, PyObjec
     tsk_size_t num_indexes = 0;
     tsk_size_t num_sample_sets = 0;
     tsk_size_t num_windows = 0;
-    tsk_size_t num_time_windows = 0;
+    tsk_size_t num_outputs = 0;
     int span_normalise = 0;
-    // int nodes_output = 0;
     int err;
 
     if (TreeSequence_check_state(self) != 0) {
         goto out;
     }
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "OOOOO|i", kwlist, &py_windows,
-            &py_sample_set_sizes, &py_sample_sets, &py_indexes, &py_time_windows,
+            &py_sample_set_sizes, &py_sample_sets, &py_indexes, &py_node_output_map,
             &span_normalise)) {
         goto out;
     }
@@ -9964,22 +9976,18 @@ TreeSequence_pair_coalescence_counts(TreeSequence *self, PyObject *args, PyObjec
     if (parse_set_indexes(py_indexes, &indexes_array, &num_indexes, 2) != 0) {
         goto out;
     }
-    if (parse_time_windows(py_time_windows, &time_windows_array, &num_time_windows)
+    if (parse_node_output_map(py_node_output_map, &node_output_map_array, &num_outputs,
+            tsk_treeseq_get_num_nodes(self->tree_sequence))
         != 0) {
         goto out;
     }
     if (span_normalise) {
         options |= TSK_STAT_SPAN_NORMALISE;
     }
-    // if (nodes_output) {
-    //    options |= TSK_STAT_NODE;
-    //}
 
-    // tsk_size_t num_nodes = tsk_treeseq_get_num_nodes(self->tree_sequence);
     npy_intp dims[3];
     dims[0] = num_windows;
-    // dims[1] = nodes_output ? num_nodes : num_time_windows;
-    dims[1] = num_time_windows;
+    dims[1] = num_outputs;
     dims[2] = num_indexes;
     result_array = (PyArrayObject *) PyArray_SimpleNew(3, dims, NPY_FLOAT64);
     if (result_array == NULL) {
@@ -9989,8 +9997,8 @@ TreeSequence_pair_coalescence_counts(TreeSequence *self, PyObject *args, PyObjec
     err = tsk_treeseq_pair_coalescence_stat(self->tree_sequence, num_sample_sets,
         PyArray_DATA(sample_set_sizes_array), PyArray_DATA(sample_sets_array),
         num_indexes, PyArray_DATA(indexes_array), num_windows,
-        PyArray_DATA(windows_array), num_time_windows, PyArray_DATA(time_windows_array),
-        options, PyArray_DATA(result_array));
+        PyArray_DATA(windows_array), PyArray_DATA(node_output_map_array), options,
+        PyArray_DATA(result_array));
     if (err != 0) {
         handle_library_error(err);
         goto out;
@@ -10002,7 +10010,7 @@ out:
     Py_XDECREF(sample_sets_array);
     Py_XDECREF(windows_array);
     Py_XDECREF(indexes_array);
-    Py_XDECREF(time_windows_array);
+    Py_XDECREF(node_output_map_array);
     Py_XDECREF(result_array);
     return ret;
 }

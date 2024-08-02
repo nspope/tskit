@@ -319,8 +319,9 @@ verify_pair_coalescence_counts(tsk_treeseq_t *ts, tsk_flags_t options)
     tsk_id_t sample_sets[n];
     tsk_size_t sample_set_sizes[P];
     tsk_id_t index_tuples[2 * I];
+    tsk_id_t node_output_map[N];
     tsk_size_t dim = T * N * I;
-    double C1[dim]; //, C2[dim];
+    double C1[dim];
     tsk_size_t i, j, k;
 
     for (i = 0; i < n; i++) {
@@ -342,52 +343,52 @@ verify_pair_coalescence_counts(tsk_treeseq_t *ts, tsk_flags_t options)
         }
     }
 
-    double max_time = tsk_treeseq_get_max_time(ts);
-    double time_windows[3] = { 0.0, max_time / 2, INFINITY };
+    for (i = 0; i < N; i++) {
+        node_output_map[i] = (tsk_id_t) i;
+    }
 
     ret = tsk_treeseq_pair_coalescence_stat(ts, P, sample_set_sizes, sample_sets, I,
-        index_tuples, T, breakpoints, 2, time_windows, options, C1);
+        index_tuples, T, breakpoints, node_output_map, options, C1);
     CU_ASSERT_EQUAL_FATAL(ret, 0);
-
-    double trunc_time_windows[3] = { max_time * 0.2, max_time * 0.5, max_time * 0.8 };
-    ret = tsk_treeseq_pair_coalescence_stat(ts, P, sample_set_sizes, sample_sets, I,
-        index_tuples, T, breakpoints, 2, trunc_time_windows, options, C1);
-    CU_ASSERT_EQUAL_FATAL(ret, 0);
+    /* TODO: test against naive pairs per node per tree */
 
     /* cover errors */
-    double nil_time_windows[1] = { 0.0 };
-    ret = tsk_treeseq_pair_coalescence_stat(ts, P, sample_set_sizes, sample_sets, I,
-        index_tuples, T, breakpoints, 0, nil_time_windows, options, C1);
-    CU_ASSERT_EQUAL_FATAL(ret, TSK_ERR_BAD_NUM_TIME_WINDOWS);
-
-    double bad_time_windows[2] = { 10.0, 0.0 };
-    ret = tsk_treeseq_pair_coalescence_stat(ts, P, sample_set_sizes, sample_sets, I,
-        index_tuples, T, breakpoints, 1, bad_time_windows, options, C1);
-    CU_ASSERT_EQUAL_FATAL(ret, TSK_ERR_BAD_TIME_WINDOWS);
-
     double bad_breakpoints[2] = { breakpoints[1], 0.0 };
     ret = tsk_treeseq_pair_coalescence_stat(ts, P, sample_set_sizes, sample_sets, I,
-        index_tuples, 1, bad_breakpoints, 1, time_windows, options, C1);
+        index_tuples, 1, bad_breakpoints, node_output_map, options, C1);
     CU_ASSERT_EQUAL_FATAL(ret, TSK_ERR_BAD_WINDOWS);
 
     index_tuples[0] = (tsk_id_t) P;
     ret = tsk_treeseq_pair_coalescence_stat(ts, P, sample_set_sizes, sample_sets, I,
-        index_tuples, 1, breakpoints, 1, time_windows, options, C1);
+        index_tuples, 1, breakpoints, node_output_map, options, C1);
     CU_ASSERT_EQUAL_FATAL(ret, TSK_ERR_BAD_SAMPLE_SET_INDEX);
     index_tuples[0] = 0;
 
     tsk_size_t tmp = sample_set_sizes[0];
     sample_set_sizes[0] = 0;
     ret = tsk_treeseq_pair_coalescence_stat(ts, P, sample_set_sizes, sample_sets, I,
-        index_tuples, 1, breakpoints, 1, time_windows, options, C1);
+        index_tuples, 1, breakpoints, node_output_map, options, C1);
     CU_ASSERT_EQUAL_FATAL(ret, TSK_ERR_EMPTY_SAMPLE_SET);
     sample_set_sizes[0] = tmp;
 
     sample_sets[1] = 0;
     ret = tsk_treeseq_pair_coalescence_stat(ts, P, sample_set_sizes, sample_sets, I,
-        index_tuples, 1, breakpoints, 1, time_windows, options, C1);
+        index_tuples, 1, breakpoints, node_output_map, options, C1);
     CU_ASSERT_EQUAL_FATAL(ret, TSK_ERR_DUPLICATE_SAMPLE);
     sample_sets[1] = 1;
+
+    tsk_id_t bad_node_output_map[N];
+    for (i = 0; i < N; i++) {
+        bad_node_output_map[i] = TSK_NULL;
+    }
+    ret = tsk_treeseq_pair_coalescence_stat(ts, P, sample_set_sizes, sample_sets, I,
+        index_tuples, 1, breakpoints, bad_node_output_map, options, C1);
+    CU_ASSERT_EQUAL_FATAL(ret, TSK_ERR_EMPTY_NODE_OUTPUT_MAP);
+
+    bad_node_output_map[0] = -2;
+    ret = tsk_treeseq_pair_coalescence_stat(ts, P, sample_set_sizes, sample_sets, I,
+        index_tuples, 1, breakpoints, bad_node_output_map, options, C1);
+    CU_ASSERT_EQUAL_FATAL(ret, TSK_ERR_BAD_NODE_OUTPUT_MAP);
 }
 
 typedef struct {
