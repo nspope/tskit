@@ -60,8 +60,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python: [ 3.9, 3.12 ]
-        os:  [ macos-latest, ubuntu-latest, windows-latest ]
+        python: [ 3.9 ]
+        os:  [ windows-latest ]
     defaults:
       run:
         shell: bash
@@ -131,6 +131,9 @@ jobs:
           source ~/.profile
           conda activate anaconda-client-env
           python setup.py build_ext --inplace
+
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
 
       - name: Run tests
         working-directory: python
