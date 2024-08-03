@@ -9399,14 +9399,14 @@ class TreeSequence:
             sample_set_sizes=sample_set_sizes,
             windows=windows,
             indexes=indexes,
-            node_output_map=node_output_map,
+            #node_output_map=node_output_map,
             span_normalise=span_normalise,
         )
 
-        if drop_right_dimension:
-            coalescing_pairs = coalescing_pairs[..., 0]
-        if drop_left_dimension:
-            coalescing_pairs = coalescing_pairs[0]
+        #if drop_right_dimension:
+        #    coalescing_pairs = coalescing_pairs[..., 0]
+        #if drop_left_dimension:
+        #    coalescing_pairs = coalescing_pairs[0]
 
         return coalescing_pairs
 

@@ -9937,15 +9937,13 @@ TreeSequence_pair_coalescence_counts(TreeSequence *self, PyObject *args, PyObjec
     PyObject *ret = NULL;
 
     static char *kwlist[] = { "windows", "sample_set_sizes", "sample_sets", "indexes",
-        "node_output_map", "span_normalise", NULL };
+        "span_normalise", NULL };
     PyObject *py_sample_set_sizes = Py_None;
     PyObject *py_sample_sets = Py_None;
     PyObject *py_windows = Py_None;
-    PyObject *py_node_output_map = Py_None;
     PyObject *py_indexes = Py_None;
     PyArrayObject *result_array = NULL;
     PyArrayObject *windows_array = NULL;
-    PyArrayObject *node_output_map_array = NULL;
     PyArrayObject *indexes_array = NULL;
     PyArrayObject *sample_set_sizes_array = NULL;
     PyArrayObject *sample_sets_array = NULL;
@@ -9961,7 +9959,7 @@ TreeSequence_pair_coalescence_counts(TreeSequence *self, PyObject *args, PyObjec
         goto out;
     }
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "OOOOO|i", kwlist, &py_windows,
-            &py_sample_set_sizes, &py_sample_sets, &py_indexes, &py_node_output_map,
+            &py_sample_set_sizes, &py_sample_sets, &py_indexes, 
             &span_normalise)) {
         goto out;
     }
@@ -9976,11 +9974,6 @@ TreeSequence_pair_coalescence_counts(TreeSequence *self, PyObject *args, PyObjec
     if (parse_set_indexes(py_indexes, &indexes_array, &num_indexes, 2) != 0) {
         goto out;
     }
-    if (parse_node_output_map(py_node_output_map, &node_output_map_array, &num_outputs,
-            tsk_treeseq_get_num_nodes(self->tree_sequence))
-        != 0) {
-        goto out;
-    }
     if (span_normalise) {
         options |= TSK_STAT_SPAN_NORMALISE;
     }
@@ -9993,6 +9986,12 @@ TreeSequence_pair_coalescence_counts(TreeSequence *self, PyObject *args, PyObjec
     if (result_array == NULL) {
         goto out;
     }
+    //DEBUG
+    PyArray_FILLWBYTE(result_array, 0);
+    ret = (PyObject *) result_array;
+    result_array = NULL;
+    goto out;
+    //DEBUG
 
     err = tsk_treeseq_pair_coalescence_stat(self->tree_sequence, num_sample_sets,
         PyArray_DATA(sample_set_sizes_array), PyArray_DATA(sample_sets_array),
@@ -10009,7 +10008,6 @@ out:
     Py_XDECREF(sample_sets_array);
     Py_XDECREF(windows_array);
     Py_XDECREF(indexes_array);
-    Py_XDECREF(node_output_map_array);
     Py_XDECREF(result_array);
     return ret;
 }
