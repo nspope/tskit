@@ -9403,10 +9403,10 @@ class TreeSequence:
             span_normalise=span_normalise,
         )
 
-        #if drop_right_dimension:
-        #    coalescing_pairs = coalescing_pairs[..., 0]
-        #if drop_left_dimension:
-        #    coalescing_pairs = coalescing_pairs[0]
+        if drop_right_dimension:
+            coalescing_pairs = coalescing_pairs[..., 0]
+        if drop_left_dimension:
+            coalescing_pairs = coalescing_pairs[0]
 
         return coalescing_pairs
 

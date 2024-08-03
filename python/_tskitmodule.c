@@ -9988,9 +9988,9 @@ TreeSequence_pair_coalescence_counts(TreeSequence *self, PyObject *args, PyObjec
     }
     //DEBUG
     PyArray_FILLWBYTE(result_array, 0);
-    ret = (PyObject *) result_array;
-    result_array = NULL;
-    goto out;
+    //ret = (PyObject *) result_array;
+    //result_array = NULL;
+    //goto out;
     //DEBUG
 
     err = tsk_treeseq_pair_coalescence_stat(self->tree_sequence, num_sample_sets,
